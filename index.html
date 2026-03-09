@@ -1,0 +1,2657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SportsmanMap Pro</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <!-- Leaflet Draw -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"/>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+
+  <style>
+    /* ===================== CSS VARIABLES ===================== */
+    :root {
+      --primary: #2563eb;
+      --primary-light: #3b82f6;
+      --primary-dark: #1d4ed8;
+      --accent: #f59e0b;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface2: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --text-light: #94a3b8;
+      --shadow: rgba(0,0,0,0.1);
+      --shadow-lg: rgba(0,0,0,0.2);
+      --panel-width: 320px;
+      --header-h: 56px;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+      --font: 'Inter', sans-serif;
+    }
+
+    /* ── DARK MODE ── */
+    body.dark {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #334155;
+      --border: #475569;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-light: #64748b;
+      --shadow: rgba(0,0,0,0.4);
+      --shadow-lg: rgba(0,0,0,0.6);
+    }
+
+    /* ── THEMES ── */
+    body.theme-blue   { --primary:#2563eb; --primary-light:#3b82f6; --primary-dark:#1d4ed8; --accent:#f59e0b; }
+    body.theme-green  { --primary:#16a34a; --primary-light:#22c55e; --primary-dark:#15803d; --accent:#f59e0b; }
+    body.theme-red    { --primary:#dc2626; --primary-light:#ef4444; --primary-dark:#b91c1c; --accent:#fbbf24; }
+    body.theme-purple { --primary:#7c3aed; --primary-light:#8b5cf6; --primary-dark:#6d28d9; --accent:#f59e0b; }
+    body.theme-orange { --primary:#ea580c; --primary-light:#f97316; --primary-dark:#c2410c; --accent:#facc15; }
+
+    /* ===================== RESET ===================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; font-family: var(--font); background: var(--bg); color: var(--text); transition: background var(--transition), color var(--transition); }
+
+    /* ===================== LAYOUT ===================== */
+    #app { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+
+    /* ── TOP HEADER ── */
+    #header {
+      display: flex; align-items: center; gap: 12px;
+      height: var(--header-h); padding: 0 16px;
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 2px 8px var(--shadow-lg);
+      z-index: 1000; position: relative;
+      flex-shrink: 0;
+    }
+    #header .logo { display:flex; align-items:center; gap:8px; font-size:1.2rem; font-weight:700; white-space:nowrap; }
+    #header .logo i { font-size:1.4rem; color: var(--accent); }
+    #header .tagline { font-size:0.75rem; opacity:0.85; white-space:nowrap; }
+    #header .spacer { flex:1; }
+    #header .hdr-btn {
+      background: rgba(255,255,255,0.15); border: none; color: #fff;
+      width:36px; height:36px; border-radius:8px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1rem; transition: background 0.2s;
+    }
+    #header .hdr-btn:hover { background: rgba(255,255,255,0.3); }
+    #search-box {
+      flex:1; max-width:400px;
+      display:flex; align-items:center; gap:8px;
+      background: rgba(255,255,255,0.2);
+      border-radius:8px; padding: 0 12px; height:36px;
+    }
+    #search-box input {
+      flex:1; background:transparent; border:none; outline:none;
+      color:#fff; font-size:0.9rem; font-family:var(--font);
+    }
+    #search-box input::placeholder { color:rgba(255,255,255,0.7); }
+    #search-box i { color:rgba(255,255,255,0.7); }
+    #search-results {
+      position:absolute; top: calc(var(--header-h) - 4px); left:50%;
+      transform:translateX(-50%); width:380px; max-height:300px;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius-sm); overflow-y:auto;
+      box-shadow:0 8px 24px var(--shadow-lg); z-index:9999;
+      display:none;
+    }
+    #search-results .sr-item {
+      padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--border);
+      font-size:0.875rem; transition:background 0.15s;
+    }
+    #search-results .sr-item:hover { background:var(--surface2); }
+    #search-results .sr-item i { color:var(--primary); margin-right:8px; }
+
+    /* ── MAIN CONTENT AREA ── */
+    #main { display:flex; flex:1; overflow:hidden; position:relative; }
+
+    /* ── MAP ── */
+    #map { flex:1; height:100%; position:relative; z-index:1; }
+    .leaflet-container { background: #1a1a2e; }
+
+    /* ── SETTINGS PANEL ── */
+    #settings-panel {
+      width: var(--panel-width);
+      height: 100%;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      transition: width var(--transition), transform var(--transition), border var(--transition);
+      overflow: hidden;
+      z-index: 500;
+      box-shadow: -4px 0 16px var(--shadow);
+      position: relative;
+      flex-shrink: 0;
+    }
+    #settings-panel.collapsed { width: 0; border-left: none; }
+    #settings-panel.position-left {
+      order: -1;
+      border-left: none;
+      border-right: 1px solid var(--border);
+      box-shadow: 4px 0 16px var(--shadow);
+    }
+    #settings-panel.position-top,
+    #settings-panel.position-bottom {
+      position:absolute; width:100% !important; height:auto;
+      max-height:50vh; overflow-y:auto; z-index:600;
+      border-left:none; border-right:none;
+      box-shadow: 0 4px 16px var(--shadow);
+    }
+    #settings-panel.position-top { top:0; left:0; border-bottom:1px solid var(--border); }
+    #settings-panel.position-bottom { bottom:0; left:0; border-top:1px solid var(--border); }
+
+    /* ── TOGGLE BUTTON ── */
+    #panel-toggle {
+      position:absolute; top:50%; transform:translateY(-50%);
+      right: var(--panel-width);
+      width:28px; height:56px;
+      background:var(--primary);
+      border:none; border-radius:8px 0 0 8px;
+      color:#fff; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      z-index:600; transition: right var(--transition);
+      box-shadow: -3px 0 10px var(--shadow);
+    }
+    #panel-toggle.collapsed { right:0; border-radius:8px 0 0 8px; }
+    #panel-toggle.position-left { left: var(--panel-width); right:auto; border-radius:0 8px 8px 0; }
+    #panel-toggle.position-left.collapsed { left:0; }
+    #panel-toggle i { font-size:0.85rem; transition: transform var(--transition); }
+
+    /* ── PANEL INNER ── */
+    #panel-inner { display:flex; flex-direction:column; height:100%; min-width:var(--panel-width); }
+
+    .panel-header {
+      padding:14px 16px 10px;
+      border-bottom:1px solid var(--border);
+      background:var(--surface);
+      flex-shrink:0;
+    }
+    .panel-header h3 { font-size:1rem; font-weight:700; color:var(--text); display:flex; align-items:center; gap:8px; }
+    .panel-header h3 i { color:var(--primary); }
+
+    .panel-tabs {
+      display:flex; border-bottom:1px solid var(--border);
+      background:var(--surface2); flex-shrink:0;
+    }
+    .panel-tab {
+      flex:1; padding:10px 6px; border:none; background:transparent;
+      color:var(--text-muted); font-size:0.7rem; font-weight:500;
+      cursor:pointer; transition:all 0.2s; display:flex;
+      flex-direction:column; align-items:center; gap:3px;
+      font-family:var(--font); border-bottom:2px solid transparent;
+    }
+    .panel-tab i { font-size:1rem; }
+    .panel-tab.active { color:var(--primary); border-bottom-color:var(--primary); background:var(--surface); }
+    .panel-tab:hover:not(.active) { background:var(--border); color:var(--text); }
+
+    .panel-content { flex:1; overflow-y:auto; padding:12px; }
+    .panel-content::-webkit-scrollbar { width:4px; }
+    .panel-content::-webkit-scrollbar-track { background:transparent; }
+    .panel-content::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+
+    /* ── SECTION ── */
+    .section { margin-bottom:18px; }
+    .section-title {
+      font-size:0.7rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.08em; color:var(--text-muted);
+      margin-bottom:8px; padding-bottom:4px;
+      border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:6px;
+    }
+    .section-title i { font-size:0.8rem; color:var(--primary); }
+
+    /* ── BASEMAP GRID ── */
+    .basemap-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+    .basemap-card {
+      border:2px solid var(--border); border-radius:var(--radius-sm);
+      overflow:hidden; cursor:pointer; transition:all 0.2s;
+      background:var(--surface2);
+    }
+    .basemap-card:hover { border-color:var(--primary-light); transform:translateY(-1px); }
+    .basemap-card.active { border-color:var(--primary); box-shadow:0 0 0 2px var(--primary-light); }
+    .basemap-preview {
+      height:52px; background:linear-gradient(135deg,#e2e8f0,#94a3b8);
+      position:relative; overflow:hidden;
+    }
+    .basemap-preview img { width:100%; height:100%; object-fit:cover; }
+    .basemap-preview .preview-label {
+      position:absolute; inset:0; display:flex; align-items:center;
+      justify-content:center; font-size:1.3rem;
+    }
+    .basemap-name { font-size:0.68rem; font-weight:600; padding:4px 6px; color:var(--text); text-align:center; }
+    .basemap-card.active .basemap-name { color:var(--primary); }
+
+    /* ── LAYER TOGGLES ── */
+    .layer-item {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:8px 10px; border-radius:var(--radius-sm);
+      margin-bottom:4px; background:var(--surface2);
+      cursor:pointer; transition:background 0.2s;
+    }
+    .layer-item:hover { background:var(--border); }
+    .layer-left { display:flex; align-items:center; gap:10px; }
+    .layer-icon {
+      width:30px; height:30px; border-radius:6px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:0.95rem; color:#fff; flex-shrink:0;
+    }
+    .layer-info .layer-name { font-size:0.8rem; font-weight:600; color:var(--text); }
+    .layer-info .layer-sub { font-size:0.68rem; color:var(--text-muted); }
+
+    /* ── TOGGLE SWITCH ── */
+    .toggle { position:relative; display:inline-block; width:40px; height:22px; flex-shrink:0; }
+    .toggle input { opacity:0; width:0; height:0; }
+    .toggle-slider {
+      position:absolute; inset:0; background:#cbd5e1;
+      border-radius:22px; cursor:pointer;
+      transition:0.3s; 
+    }
+    .toggle-slider::before {
+      content:''; position:absolute;
+      width:16px; height:16px; left:3px; top:3px;
+      background:#fff; border-radius:50%; transition:0.3s;
+      box-shadow:0 1px 3px var(--shadow-lg);
+    }
+    input:checked + .toggle-slider { background:var(--primary); }
+    input:checked + .toggle-slider::before { transform:translateX(18px); }
+
+    /* ── THEME COLORS ── */
+    .theme-grid { display:flex; gap:8px; flex-wrap:wrap; }
+    .theme-dot {
+      width:36px; height:36px; border-radius:50%; cursor:pointer;
+      border:3px solid transparent; transition:all 0.2s;
+      display:flex; align-items:center; justify-content:center;
+      color:#fff; font-size:0.8rem;
+    }
+    .theme-dot:hover { transform:scale(1.1); }
+    .theme-dot.active { border-color:var(--text); box-shadow:0 0 0 2px var(--bg); }
+    .theme-dot.t-blue   { background:#2563eb; }
+    .theme-dot.t-green  { background:#16a34a; }
+    .theme-dot.t-red    { background:#dc2626; }
+    .theme-dot.t-purple { background:#7c3aed; }
+    .theme-dot.t-orange { background:#ea580c; }
+
+    /* ── DARK MODE TOGGLE ROW ── */
+    .mode-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 12px; border-radius:var(--radius-sm);
+      background:var(--surface2); margin-bottom:8px;
+    }
+    .mode-row .mode-left { display:flex; align-items:center; gap:10px; font-size:0.85rem; font-weight:500; }
+    .mode-row .mode-left i { color:var(--primary); font-size:1rem; }
+
+    /* ── POSITION SELECTOR ── */
+    .pos-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+    .pos-btn {
+      padding:7px 4px; border:1px solid var(--border); border-radius:6px;
+      background:var(--surface2); color:var(--text-muted); font-size:0.68rem;
+      cursor:pointer; text-align:center; transition:all 0.2s;
+      font-family:var(--font); font-weight:500;
+    }
+    .pos-btn i { display:block; font-size:1rem; margin-bottom:2px; color:var(--text-muted); }
+    .pos-btn:hover { border-color:var(--primary); color:var(--primary); }
+    .pos-btn.active { background:var(--primary); border-color:var(--primary); color:#fff; }
+    .pos-btn.active i { color:#fff; }
+
+    /* ── OPACITY SLIDER ── */
+    .slider-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+    .slider-row label { font-size:0.75rem; color:var(--text-muted); min-width:80px; }
+    .slider-row input[type=range] {
+      flex:1; accent-color:var(--primary); cursor:pointer;
+    }
+    .slider-row .val { font-size:0.75rem; color:var(--text); min-width:30px; text-align:right; font-weight:600; }
+
+    /* ── PINS ── */
+    .pin-list { display:flex; flex-direction:column; gap:6px; }
+    .pin-item {
+      display:flex; align-items:center; gap:10px;
+      padding:9px 10px; border-radius:var(--radius-sm);
+      background:var(--surface2); border:1px solid var(--border);
+      cursor:pointer; transition:all 0.2s;
+    }
+    .pin-item:hover { border-color:var(--primary); background:var(--surface); }
+    .pin-item .pin-icon { font-size:1.1rem; flex-shrink:0; }
+    .pin-item .pin-info { flex:1; min-width:0; }
+    .pin-item .pin-name { font-size:0.8rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .pin-item .pin-coords { font-size:0.68rem; color:var(--text-muted); }
+    .pin-item .pin-del {
+      background:none; border:none; color:var(--text-muted);
+      cursor:pointer; font-size:0.85rem; padding:4px;
+      border-radius:4px; transition:color 0.2s;
+    }
+    .pin-item .pin-del:hover { color:#ef4444; }
+
+    /* ── WEATHER WIDGET ── */
+    .weather-card {
+      padding:14px; border-radius:var(--radius-sm);
+      background:linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color:#fff; margin-bottom:10px;
+    }
+    .weather-card .w-loc { font-size:0.75rem; opacity:0.85; margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+    .weather-card .w-main { display:flex; align-items:center; gap:12px; }
+    .weather-card .w-temp { font-size:2rem; font-weight:700; }
+    .weather-card .w-icon { font-size:2.5rem; }
+    .weather-card .w-desc { font-size:0.85rem; opacity:0.9; }
+    .weather-card .w-details { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:10px; }
+    .weather-card .w-detail { font-size:0.72rem; display:flex; align-items:center; gap:5px; opacity:0.85; }
+
+    .forecast-row { display:flex; gap:6px; margin-top:8px; }
+    .forecast-day {
+      flex:1; text-align:center; padding:8px 4px;
+      background:var(--surface2); border-radius:var(--radius-sm);
+      border:1px solid var(--border);
+    }
+    .forecast-day .f-day { font-size:0.65rem; color:var(--text-muted); font-weight:600; }
+    .forecast-day .f-icon { font-size:1.2rem; margin:4px 0; }
+    .forecast-day .f-temp { font-size:0.7rem; font-weight:700; color:var(--text); }
+
+    /* ── COORDINATES DISPLAY ── */
+    #coords-bar {
+      position:absolute; bottom:10px; left:50%;
+      transform:translateX(-50%);
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:20px; padding:4px 14px;
+      font-size:0.72rem; color:var(--text-muted);
+      z-index:400; pointer-events:none;
+      box-shadow:0 2px 8px var(--shadow);
+      white-space:nowrap;
+    }
+    #coords-bar span { color:var(--text); font-weight:600; }
+
+    /* ── FLOATING ACTION BUTTONS ── */
+    #fab-container {
+      position:absolute; bottom:50px; right:16px;
+      display:flex; flex-direction:column; gap:8px;
+      z-index:400;
+    }
+    .fab {
+      width:44px; height:44px; border-radius:12px;
+      background:var(--surface); border:1px solid var(--border);
+      color:var(--text); font-size:1rem; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:0 2px 8px var(--shadow); transition:all 0.2s;
+    }
+    .fab:hover { background:var(--primary); color:#fff; border-color:var(--primary); transform:translateY(-1px); }
+    .fab.primary-fab { background:var(--primary); color:#fff; border-color:var(--primary); }
+    .fab.primary-fab:hover { background:var(--primary-dark); }
+
+    /* ── POPUP ── */
+    #custom-popup {
+      position:absolute; z-index:800;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); padding:0; min-width:240px;
+      max-width:300px; box-shadow:0 8px 32px var(--shadow-lg);
+      display:none;
+    }
+    .popup-header {
+      padding:12px 14px; background:var(--primary);
+      border-radius:var(--radius) var(--radius) 0 0;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .popup-header h4 { color:#fff; font-size:0.9rem; font-weight:700; }
+    .popup-close { background:none; border:none; color:rgba(255,255,255,0.8); cursor:pointer; font-size:1rem; }
+    .popup-body { padding:12px 14px; }
+    .popup-row { display:flex; gap:8px; margin-top:6px; }
+    .popup-btn {
+      flex:1; padding:8px; border-radius:8px; border:1px solid var(--border);
+      background:var(--surface2); color:var(--text); font-size:0.75rem;
+      cursor:pointer; text-align:center; transition:all 0.2s; font-family:var(--font);
+      font-weight:500;
+    }
+    .popup-btn:hover { background:var(--primary); color:#fff; border-color:var(--primary); }
+    .popup-btn.danger:hover { background:#ef4444; border-color:#ef4444; }
+
+    /* ── MODAL ── */
+    #modal-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.5);
+      z-index:2000; display:none; align-items:center; justify-content:center;
+      padding:16px;
+    }
+    #modal-overlay.active { display:flex; }
+    .modal {
+      background:var(--surface); border-radius:var(--radius);
+      width:100%; max-width:440px; box-shadow:0 16px 48px var(--shadow-lg);
+      overflow:hidden;
+    }
+    .modal-header {
+      padding:16px 20px; background:var(--primary);
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .modal-header h3 { color:#fff; font-size:1rem; font-weight:700; display:flex; align-items:center; gap:8px; }
+    .modal-close { background:none; border:none; color:rgba(255,255,255,0.8); cursor:pointer; font-size:1.1rem; }
+    .modal-body { padding:20px; }
+    .form-group { margin-bottom:14px; }
+    .form-group label { display:block; font-size:0.8rem; font-weight:600; margin-bottom:5px; color:var(--text); }
+    .form-group input, .form-group select, .form-group textarea {
+      width:100%; padding:9px 12px; border:1px solid var(--border);
+      border-radius:var(--radius-sm); background:var(--surface2);
+      color:var(--text); font-size:0.875rem; font-family:var(--font);
+      transition:border-color 0.2s; outline:none;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color:var(--primary);
+    }
+    .form-group textarea { resize:vertical; min-height:70px; }
+    .emoji-picker { display:flex; flex-wrap:wrap; gap:6px; }
+    .emoji-btn {
+      width:34px; height:34px; border-radius:6px; border:2px solid var(--border);
+      background:var(--surface2); cursor:pointer; font-size:1.1rem;
+      display:flex; align-items:center; justify-content:center; transition:all 0.2s;
+    }
+    .emoji-btn:hover, .emoji-btn.active { border-color:var(--primary); background:var(--primary); }
+    .modal-footer { padding:14px 20px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; }
+    .btn {
+      padding:9px 20px; border-radius:var(--radius-sm); border:none;
+      font-size:0.875rem; font-weight:600; cursor:pointer;
+      font-family:var(--font); transition:all 0.2s;
+    }
+    .btn-primary { background:var(--primary); color:#fff; }
+    .btn-primary:hover { background:var(--primary-dark); }
+    .btn-secondary { background:var(--surface2); color:var(--text); border:1px solid var(--border); }
+    .btn-secondary:hover { background:var(--border); }
+
+    /* ── TOAST ── */
+    #toast-container {
+      position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
+      z-index:9999; display:flex; flex-direction:column; gap:8px; align-items:center;
+    }
+    .toast {
+      background:var(--text); color:var(--bg);
+      padding:10px 20px; border-radius:20px;
+      font-size:0.85rem; font-weight:500;
+      box-shadow:0 4px 16px var(--shadow-lg);
+      animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+      white-space:nowrap;
+    }
+    @keyframes toastIn  { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes toastOut { from { opacity:1; } to { opacity:0; transform:translateY(20px); } }
+
+    /* ── LOADING ── */
+    #loading {
+      position:fixed; inset:0; background:var(--primary);
+      z-index:9999; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:20px;
+      color:#fff;
+    }
+    #loading .load-logo { font-size:3rem; }
+    #loading h2 { font-size:1.5rem; font-weight:700; }
+    #loading p { font-size:0.9rem; opacity:0.8; }
+    .spinner {
+      width:48px; height:48px;
+      border:4px solid rgba(255,255,255,0.3);
+      border-top-color:#fff;
+      border-radius:50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* ── MAP OVERLAYS ── */
+    #scale-bar { position:absolute; bottom:10px; left:10px; z-index:400; }
+    
+    /* ── GPS TRACKING ── */
+    .gps-active { animation: gps-pulse 1.5s ease infinite; }
+    @keyframes gps-pulse {
+      0%,100% { box-shadow:0 0 0 0 rgba(37,99,235,0.4); }
+      50%      { box-shadow:0 0 0 8px rgba(37,99,235,0); }
+    }
+
+    /* ── LEGEND ── */
+    #map-legend {
+      position:absolute; bottom:40px; left:10px;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius-sm); padding:10px 12px;
+      z-index:400; display:none; min-width:150px;
+      box-shadow:0 2px 8px var(--shadow);
+    }
+    #map-legend h5 { font-size:0.75rem; font-weight:700; margin-bottom:6px; color:var(--text); }
+    .legend-item { display:flex; align-items:center; gap:8px; margin-bottom:4px; font-size:0.72rem; color:var(--text-muted); }
+    .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .legend-line { width:20px; height:3px; flex-shrink:0; border-radius:2px; }
+
+    /* ── MEASURING TOOL ── */
+    #measure-result {
+      position:absolute; top:70px; left:50%;
+      transform:translateX(-50%);
+      background:var(--accent); color:#000;
+      padding:6px 16px; border-radius:20px;
+      font-size:0.8rem; font-weight:700;
+      z-index:400; display:none;
+      box-shadow:0 2px 8px var(--shadow);
+    }
+
+    /* ── INFO PANEL ── */
+    .info-card {
+      padding:10px; border-radius:var(--radius-sm);
+      background:var(--surface2); border:1px solid var(--border);
+      margin-bottom:8px;
+    }
+    .info-card h5 { font-size:0.8rem; font-weight:700; margin-bottom:4px; color:var(--text); display:flex; align-items:center; gap:6px; }
+    .info-card p { font-size:0.75rem; color:var(--text-muted); line-height:1.5; }
+    .info-card .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:6px; }
+    .info-stat { text-align:center; }
+    .info-stat .stat-val { font-size:1rem; font-weight:700; color:var(--primary); }
+    .info-stat .stat-lbl { font-size:0.65rem; color:var(--text-muted); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      :root { --panel-width: 280px; --header-h: 52px; }
+      #header .tagline { display:none; }
+      #search-box { max-width:180px; }
+      #search-results { width:calc(100vw - 20px); left:10px; transform:none; }
+      #fab-container { right:10px; }
+      .basemap-grid { grid-template-columns:repeat(2,1fr); }
+      #panel-toggle { width:24px; height:48px; }
+      #coords-bar { display:none; }
+    }
+    @media (max-width: 480px) {
+      #search-box { max-width:130px; }
+      :root { --header-h: 48px; }
+      #panel-toggle { top:auto; bottom:60px; transform:none; }
+    }
+
+    /* ── LEAFLET OVERRIDES ── */
+    .leaflet-popup-content-wrapper {
+      background:var(--surface) !important;
+      color:var(--text) !important;
+      border-radius:var(--radius) !important;
+      box-shadow:0 8px 24px var(--shadow-lg) !important;
+    }
+    .leaflet-popup-tip { background:var(--surface) !important; }
+    .leaflet-popup-content { margin:12px 16px !important; }
+    .leaflet-bar a {
+      background:var(--surface) !important;
+      color:var(--text) !important;
+      border-color:var(--border) !important;
+    }
+    .leaflet-bar a:hover { background:var(--surface2) !important; }
+    .leaflet-control-attribution { background:var(--surface) !important; color:var(--text-muted) !important; }
+
+    /* ── ANIMATE PANEL ── */
+    .panel-content .section { animation: fadeSlide 0.3s ease; }
+    @keyframes fadeSlide { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    /* status badges */
+    .badge {
+      display:inline-block; padding:1px 7px; border-radius:10px;
+      font-size:0.65rem; font-weight:700; text-transform:uppercase;
+    }
+    .badge-green { background:#dcfce7; color:#16a34a; }
+    .badge-red   { background:#fee2e2; color:#dc2626; }
+    .badge-yellow{ background:#fef9c3; color:#ca8a04; }
+    body.dark .badge-green { background:#14532d; color:#4ade80; }
+    body.dark .badge-red   { background:#7f1d1d; color:#f87171; }
+    body.dark .badge-yellow{ background:#78350f; color:#fcd34d; }
+
+    /* ── MINI MAP PREVIEW ── */
+    #minimap {
+      position:absolute; bottom:40px; right:16px;
+      width:140px; height:100px;
+      border:2px solid var(--border);
+      border-radius:var(--radius-sm);
+      z-index:399; display:none;
+      box-shadow:0 2px 8px var(--shadow);
+      overflow:hidden;
+    }
+
+    /* ── PRINT HIDE ── */
+    @media print { #settings-panel, #header, #fab-container, #panel-toggle { display:none !important; } }
+  </style>
+</head>
+
+<body class="theme-blue">
+
+<!-- LOADING SCREEN -->
+<div id="loading">
+  <div class="load-logo">🗺️</div>
+  <h2>SportsmanMap Pro</h2>
+  <p>Loading your adventure...</p>
+  <div class="spinner"></div>
+</div>
+
+<!-- APP WRAPPER -->
+<div id="app">
+
+  <!-- ====== HEADER ====== -->
+  <header id="header">
+    <div class="logo">
+      <i class="fa-solid fa-map-location-dot"></i>
+      <div>
+        <div>SportsmanMap Pro</div>
+        <div class="tagline">Hunt · Fish · Explore</div>
+      </div>
+    </div>
+
+    <div id="search-box">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" id="search-input" placeholder="Search location..." autocomplete="off"/>
+    </div>
+    <div id="search-results"></div>
+
+    <div class="spacer"></div>
+
+    <button class="hdr-btn" id="btn-gps" title="My Location"><i class="fa-solid fa-location-crosshairs"></i></button>
+    <button class="hdr-btn" id="btn-measure" title="Measure Distance"><i class="fa-solid fa-ruler"></i></button>
+    <button class="hdr-btn" id="btn-fullscreen" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
+    <button class="hdr-btn" id="btn-share" title="Share Map"><i class="fa-solid fa-share-nodes"></i></button>
+    <button class="hdr-btn" id="btn-settings-gear" title="Settings"><i class="fa-solid fa-gear"></i></button>
+  </header>
+
+  <!-- ====== MAIN ====== -->
+  <div id="main">
+
+    <!-- MAP -->
+    <div id="map"></div>
+
+    <!-- MEASURE RESULT -->
+    <div id="measure-result">📏 Distance: <span id="measure-dist">0</span></div>
+
+    <!-- MINI MAP -->
+    <div id="minimap"></div>
+
+    <!-- COORDINATES BAR -->
+    <div id="coords-bar">Lat: <span id="cur-lat">—</span> · Lng: <span id="cur-lng">—</span> · Zoom: <span id="cur-zoom">—</span></div>
+
+    <!-- FLOATING ACTION BUTTONS -->
+    <div id="fab-container">
+      <button class="fab primary-fab" id="fab-pin" title="Drop Pin"><i class="fa-solid fa-map-pin"></i></button>
+      <button class="fab" id="fab-zoom-in"  title="Zoom In"><i class="fa-solid fa-plus"></i></button>
+      <button class="fab" id="fab-zoom-out" title="Zoom Out"><i class="fa-solid fa-minus"></i></button>
+      <button class="fab" id="fab-legend"   title="Legend"><i class="fa-solid fa-list"></i></button>
+    </div>
+
+    <!-- MAP LEGEND -->
+    <div id="map-legend">
+      <h5>🗺 Layer Legend</h5>
+      <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Public Land</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Water / Lakes</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>Hunting Zone</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>Trail</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Restricted Area</div>
+      <div class="legend-item"><div class="legend-line" style="background:#fbbf24;"></div>Property Line</div>
+    </div>
+
+    <!-- ====== SETTINGS PANEL ====== -->
+    <button id="panel-toggle" title="Toggle Panel">
+      <i class="fa-solid fa-chevron-right" id="toggle-icon"></i>
+    </button>
+
+    <div id="settings-panel">
+      <div id="panel-inner">
+
+        <!-- Panel Header -->
+        <div class="panel-header">
+          <h3><i class="fa-solid fa-sliders"></i> Map Settings</h3>
+        </div>
+
+        <!-- Tabs -->
+        <div class="panel-tabs">
+          <button class="panel-tab active" data-tab="layers"><i class="fa-solid fa-layer-group"></i>Layers</button>
+          <button class="panel-tab" data-tab="basemap"><i class="fa-solid fa-map"></i>Maps</button>
+          <button class="panel-tab" data-tab="pins"><i class="fa-solid fa-thumbtack"></i>Pins</button>
+          <button class="panel-tab" data-tab="weather"><i class="fa-solid fa-cloud-sun"></i>Weather</button>
+          <button class="panel-tab" data-tab="display"><i class="fa-solid fa-palette"></i>Style</button>
+        </div>
+
+        <!-- TAB: LAYERS -->
+        <div class="panel-content tab-pane active" id="tab-layers">
+
+          <div class="section">
+            <div class="section-title"><i class="fa-solid fa-tree"></i> Hunting & Wildlife</div>
+
+            <div class="layer-item" onclick="toggleLayer('hunting')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#f97316;">🦌</div>
+                <div class="layer-info">
+                  <div class="layer-name">Hunting Zones</div>
+                  <div class="layer-sub">WMU boundaries</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-hunting" onchange="toggleLayer('hunting',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+
+            <div class="layer-item" onclick="toggleLayer('deer')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#78350f;">🦌</div>
+                <div class="layer-info">
+                  <div class="layer-name">Deer Stands</div>
+                  <div class="layer-sub">Reported locations</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-deer" onchange="toggleLayer('deer',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+
+            <div class="layer-item" onclick="toggleLayer('turkey')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#a16207;">🦃</div>
+                <div class="layer-info">
+                  <div class="layer-name">Turkey Zones</div>
+                  <div class="layer-sub">Spring & fall seasons</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-turkey" onchange="toggleLayer('turkey',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+
+            <div class="layer-item" onclick="toggleLayer('waterfowl')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#0369a1;">🦆</div>
+                <div class="layer-info">
+                  <div class="layer-name">Waterfowl Areas</div>
+                  <div class="layer-sub">Duck & goose zones</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-waterfowl" onchange="toggleLayer('waterfowl',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+
+            <div class="layer-item" onclick="toggleLayer('pheasant')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#be185d;">🐦</div>
+                <div class="layer-info">
+                  <div class="layer-name">Pheasant Habitat</div>
+                  <div class="layer-sub">WRP & CRP areas</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-pheasant" onchange="toggleLayer('pheasant',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title"><i class="fa-solid fa-fish"></i> Fishing</div>
+
+            <div class="layer-item" onclick="toggleLayer('lakes')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#0ea5e9;">🎣</div>
+                <div class="layer-info">
+                  <div class="layer-name">Lakes & Rivers</div>
+                  <div class="layer-sub">Fishing locations</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-lakes" onchange="toggleLayer('lakes',this.checked)" checked><span class="toggle-slider"></span></label>
+            </div>
+
+            <div class="layer-item" onclick="toggleLayer('access')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#0284c7;">⚓</div>
+                <div class="layer-info">
+                  <div class="layer-name">Boat Launches</div>
+                  <div class="layer-sub">Public access points</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-access" onchange="toggleLayer('access',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+
+            <div class="layer-item" onclick="toggleLayer('trout')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#0d9488;">🐟</div>
+                <div class="layer-info">
+                  <div class="layer-name">Trout Streams</div>
+                  <div class="layer-sub">Designated trout water</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-trout" onchange="toggleLayer('trout',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+
+            <div class="layer-item" onclick="toggleLayer('ice')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#7dd3fc;">🧊</div>
+                <div class="layer-info">
+                  <div class="layer-name">Ice Fishing Spots</div>
+                  <div class="layer-sub">Popular winter locations</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-ice" onchange="toggleLayer('ice',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title"><i class="fa-solid fa-hiking"></i> Recreation</div>
+
+            <div class="layer-item" onclick="toggleLayer('trails')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#8b5cf6;">🥾</div>
+                <div class="layer-info">
+                  <div class="layer-name">Hiking Trails</div>
+                  <div class="layer-sub">Marked trail systems</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-trails" onchange="toggleLayer('trails',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+
+            <div class="layer-item" onclick="toggleLayer('atv')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#dc2626;">🏍️</div>
+                <div class="layer-info">
+                  <div class="layer-name">ATV / OHV Trails</div>
+                  <div class="layer-sub">Off-highway vehicle routes</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-atv" onchange="toggleLayer('atv',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+
+            <div class="layer-item" onclick="toggleLayer('camping')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#16a34a;">⛺</div>
+                <div class="layer-info">
+                  <div class="layer-name">Campgrounds</div>
+                  <div class="layer-sub">State & national sites</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-camping" onchange="toggleLayer('camping',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+
+            <div class="layer-item" onclick="toggleLayer('snowmobile')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#0284c7;">🏔️</div>
+                <div class="layer-info">
+                  <div class="layer-name">Snowmobile Trails</div>
+                  <div class="layer-sub">Winter trail network</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-snowmobile" onchange="toggleLayer('snowmobile',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title"><i class="fa-solid fa-land-mine-on"></i> Land & Boundaries</div>
+
+            <div class="layer-item" onclick="toggleLayer('public')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#22c55e;">🌲</div>
+                <div class="layer-info">
+                  <div class="layer-name">Public Lands</div>
+                  <div class="layer-sub">State & federal ownership</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-public" onchange="toggleLayer('public',this.checked)" checked><span class="toggle-slider"></span></label>
+            </div>
+
+            <div class="layer-item" onclick="toggleLayer('private')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#ef4444;">🚫</div>
+                <div class="layer-info">
+                  <div class="layer-name">Private Lands</div>
+                  <div class="layer-sub">No trespass zones</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-private" onchange="toggleLayer('private',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+
+            <div class="layer-item" onclick="toggleLayer('parcels')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#fbbf24;">📋</div>
+                <div class="layer-info">
+                  <div class="layer-name">Property Parcels</div>
+                  <div class="layer-sub">County parcel data</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-parcels" onchange="toggleLayer('parcels',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+
+            <div class="layer-item" onclick="toggleLayer('topo')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#78716c;">⛰️</div>
+                <div class="layer-info">
+                  <div class="layer-name">Topo Contours</div>
+                  <div class="layer-sub">Elevation contours</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-topo" onchange="toggleLayer('topo',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+
+            <div class="layer-item" onclick="toggleLayer('hillshade')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#57534e;">🏔️</div>
+                <div class="layer-info">
+                  <div class="layer-name">Hillshade</div>
+                  <div class="layer-sub">Terrain shading</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-hillshade" onchange="toggleLayer('hillshade',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title"><i class="fa-solid fa-cloud"></i> Environmental</div>
+
+            <div class="layer-item" onclick="toggleLayer('weather-radar')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#7c3aed;">🌧️</div>
+                <div class="layer-info">
+                  <div class="layer-name">Weather Radar</div>
+                  <div class="layer-sub">Live NOAA radar</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-weather-radar" onchange="toggleLayer('weather-radar',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+
+            <div class="layer-item" onclick="toggleLayer('wind')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#0891b2;">💨</div>
+                <div class="layer-info">
+                  <div class="layer-name">Wind Direction</div>
+                  <div class="layer-sub">Current wind overlay</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-wind" onchange="toggleLayer('wind',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+
+            <div class="layer-item" onclick="toggleLayer('wetlands')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#064e3b;">🌿</div>
+                <div class="layer-info">
+                  <div class="layer-name">Wetlands</div>
+                  <div class="layer-sub">NWI wetland areas</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-wetlands" onchange="toggleLayer('wetlands',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+
+            <div class="layer-item" onclick="toggleLayer('fire')">
+              <div class="layer-left">
+                <div class="layer-icon" style="background:#b91c1c;">🔥</div>
+                <div class="layer-info">
+                  <div class="layer-name">Active Fires</div>
+                  <div class="layer-sub">NASA FIRMS data</div>
+                </div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="lyr-fire" onchange="toggleLayer('fire',this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+
+          <!-- Opacity Controls -->
+          <div class="section">
+            <div class="section-title"><i class="fa-solid fa-circle-half-stroke"></i> Overlay Opacity</div>
+            <div class="slider-row">
+              <label>Layers</label>
+              <input type="range" min="10" max="100" value="75" id="opacity-layers" oninput="setLayerOpacity(this.value)">
+              <span class="val" id="opacity-val">75%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: BASEMAPS -->
+        <div class="panel-content tab-pane" id="tab-basemap">
+          <div class="section">
+            <div class="section-title"><i class="fa-solid fa-map"></i> Base Map Style</div>
+            <div class="basemap-grid" id="basemap-grid">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: PINS -->
+        <div class="panel-content tab-pane" id="tab-pins">
+          <div class="section">
+            <div class="section-title"><i class="fa-solid fa-map-pin"></i> Saved Locations</div>
+            <button class="btn btn-primary" style="width:100%;margin-bottom:10px;" onclick="openPinModal()">
+              <i class="fa-solid fa-plus" style="margin-right:6px;"></i>Add New Pin
+            </button>
+            <div class="pin-list" id="pin-list">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title"><i class="fa-solid fa-share"></i> Export</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-secondary" style="flex:1;font-size:0.75rem;" onclick="exportPins('gpx')"><i class="fa-solid fa-download" style="margin-right:4px;"></i>GPX</button>
+              <button class="btn btn-secondary" style="flex:1;font-size:0.75rem;" onclick="exportPins('kml')"><i class="fa-solid fa-download" style="margin-right:4px;"></i>KML</button>
+              <button class="btn btn-secondary" style="flex:1;font-size:0.75rem;" onclick="exportPins('json')"><i class="fa-solid fa-download" style="margin-right:4px;"></i>JSON</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: WEATHER -->
+        <div class="panel-content tab-pane" id="tab-weather">
+          <div class="section">
+            <div class="section-title"><i class="fa-solid fa-cloud-sun"></i> Current Conditions</div>
+            <div class="weather-card" id="weather-card">
+              <div class="w-loc"><i class="fa-solid fa-location-dot"></i><span id="w-city">Detecting location...</span></div>
+              <div class="w-main">
+                <div class="w-icon" id="w-icon">⏳</div>
+                <div>
+                  <div class="w-temp" id="w-temp">--°F</div>
+                  <div class="w-desc" id="w-desc">Loading...</div>
+                </div>
+              </div>
+              <div class="w-details">
+                <div class="w-detail"><i class="fa-solid fa-droplet"></i><span id="w-humid">Humidity: --</span></div>
+                <div class="w-detail"><i class="fa-solid fa-wind"></i><span id="w-wind">Wind: --</span></div>
+                <div class="w-detail"><i class="fa-solid fa-gauge"></i><span id="w-pressure">Pressure: --</span></div>
+                <div class="w-detail"><i class="fa-solid fa-eye"></i><span id="w-vis">Visibility: --</span></div>
+              </div>
+            </div>
+
+            <div class="forecast-row" id="forecast-row">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title"><i class="fa-solid fa-sun"></i> Sun & Moon</div>
+            <div class="info-card">
+              <h5>☀️ Sunrise / Sunset</h5>
+              <div class="info-grid">
+                <div class="info-stat"><div class="stat-val" id="sunrise">--:--</div><div class="stat-lbl">Sunrise</div></div>
+                <div class="info-stat"><div class="stat-val" id="sunset">--:--</div><div class="stat-lbl">Sunset</div></div>
+              </div>
+            </div>
+            <div class="info-card">
+              <h5>🌙 Moon Phase</h5>
+              <div class="info-grid">
+                <div class="info-stat"><div class="stat-val" id="moon-phase">🌕</div><div class="stat-lbl">Phase</div></div>
+                <div class="info-stat"><div class="stat-val" id="moon-illum">--</div><div class="stat-lbl">Illumination</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title"><i class="fa-solid fa-fish"></i> Solunar Activity</div>
+            <div class="info-card">
+              <h5>🌊 Best Fishing Times</h5>
+              <p>Based on moon and sun position for optimal fish activity.</p>
+              <div class="info-grid" style="margin-top:8px;">
+                <div class="info-stat"><div class="stat-val" id="sol-major">--:--</div><div class="stat-lbl">Major Period</div></div>
+                <div class="info-stat"><div class="stat-val" id="sol-minor">--:--</div><div class="stat-lbl">Minor Period</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: DISPLAY / STYLE -->
+        <div class="panel-content tab-pane" id="tab-display">
+
+          <!-- Dark Mode -->
+          <div class="section">
+            <div class="section-title"><i class="fa-solid fa-circle-half-stroke"></i> Appearance</div>
+            <div class="mode-row">
+              <div class="mode-left"><i class="fa-solid fa-moon"></i> Dark Mode</div>
+              <label class="toggle"><input type="checkbox" id="dark-toggle" onchange="toggleDark(this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="mode-row">
+              <div class="mode-left"><i class="fa-solid fa-map"></i> Mini Map</div>
+              <label class="toggle"><input type="checkbox" id="minimap-toggle" onchange="toggleMinimap(this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="mode-row">
+              <div class="mode-left"><i class="fa-solid fa-ruler-combined"></i> Scale Bar</div>
+              <label class="toggle"><input type="checkbox" id="scale-toggle" checked onchange="toggleScale(this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="mode-row">
+              <div class="mode-left"><i class="fa-solid fa-crosshairs"></i> Coordinates</div>
+              <label class="toggle"><input type="checkbox" id="coords-toggle" checked onchange="toggleCoords(this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="mode-row">
+              <div class="mode-left"><i class="fa-solid fa-location-dot"></i> Show My Location</div>
+              <label class="toggle"><input type="checkbox" id="gps-display-toggle" onchange="toggleGpsDisplay(this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+
+          <!-- Color Theme -->
+          <div class="section">
+            <div class="section-title"><i class="fa-solid fa-palette"></i> Color Theme</div>
+            <div class="theme-grid" id="theme-grid">
+              <div class="theme-dot t-blue active"   data-theme="blue"   title="Blue"   onclick="setTheme('blue')">  <i class="fa-solid fa-check" style="display:none"></i></div>
+              <div class="theme-dot t-green"          data-theme="green"  title="Green"  onclick="setTheme('green')"> </div>
+              <div class="theme-dot t-red"            data-theme="red"    title="Red"    onclick="setTheme('red')">   </div>
+              <div class="theme-dot t-purple"         data-theme="purple" title="Purple" onclick="setTheme('purple')"></div>
+              <div class="theme-dot t-orange"         data-theme="orange" title="Orange" onclick="setTheme('orange')"></div>
+            </div>
+          </div>
+
+          <!-- Panel Position -->
+          <div class="section">
+            <div class="section-title"><i class="fa-solid fa-arrows-up-down-left-right"></i> Panel Position</div>
+            <div class="pos-grid">
+              <button class="pos-btn" onclick="setPanelPosition('top')"><i class="fa-solid fa-arrow-up"></i>Top</button>
+              <button class="pos-btn" onclick="setPanelPosition('left')"><i class="fa-solid fa-arrow-left"></i>Left</button>
+              <button class="pos-btn active" id="pos-right" onclick="setPanelPosition('right')"><i class="fa-solid fa-arrow-right"></i>Right</button>
+              <button class="pos-btn" onclick="setPanelPosition('bottom')"><i class="fa-solid fa-arrow-down"></i>Bottom</button>
+            </div>
+          </div>
+
+          <!-- Map Controls -->
+          <div class="section">
+            <div class="section-title"><i class="fa-solid fa-map-location"></i> Map Options</div>
+            <div class="mode-row">
+              <div class="mode-left"><i class="fa-solid fa-rotate"></i> Auto-rotate (Mobile)</div>
+              <label class="toggle"><input type="checkbox" id="rotate-toggle"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="mode-row">
+              <div class="mode-left"><i class="fa-solid fa-street-view"></i> 3D Terrain</div>
+              <label class="toggle"><input type="checkbox" id="terrain-toggle" onchange="toggle3D(this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="mode-row">
+              <div class="mode-left"><i class="fa-solid fa-fingerprint"></i> Click to Identify</div>
+              <label class="toggle"><input type="checkbox" id="identify-toggle" checked onchange="toggleIdentify(this.checked)"><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+
+          <!-- Map Units -->
+          <div class="section">
+            <div class="section-title"><i class="fa-solid fa-ruler"></i> Units</div>
+            <div class="form-group">
+              <label>Distance Units</label>
+              <select id="unit-select" onchange="setUnits(this.value)">
+                <option value="imperial">Imperial (miles, feet)</option>
+                <option value="metric">Metric (km, meters)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Coordinate Format</label>
+              <select id="coord-format" onchange="setCoordFormat(this.value)">
+                <option value="dd">Decimal Degrees</option>
+                <option value="dms">Deg Min Sec</option>
+                <option value="ddm">Deg Decimal Min</option>
+              </select>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <!-- END SETTINGS PANEL -->
+
+  </div>
+  <!-- END MAIN -->
+
+</div>
+<!-- END APP -->
+
+<!-- ====== MODALS ====== -->
+<!-- Pin Modal -->
+<div id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-map-pin"></i> Save Location</h3>
+      <button class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Pin Icon</label>
+        <div class="emoji-picker" id="emoji-picker">
+          <button class="emoji-btn active" data-emoji="📍" onclick="selectEmoji(this,'📍')">📍</button>
+          <button class="emoji-btn" data-emoji="🎯" onclick="selectEmoji(this,'🎯')">🎯</button>
+          <button class="emoji-btn" data-emoji="🦌" onclick="selectEmoji(this,'🦌')">🦌</button>
+          <button class="emoji-btn" data-emoji="🎣" onclick="selectEmoji(this,'🎣')">🎣</button>
+          <button class="emoji-btn" data-emoji="⛺" onclick="selectEmoji(this,'⛺')">⛺</button>
+          <button class="emoji-btn" data-emoji="🚗" onclick="selectEmoji(this,'🚗')">🚗</button>
+          <button class="emoji-btn" data-emoji="🏹" onclick="selectEmoji(this,'🏹')">🏹</button>
+          <button class="emoji-btn" data-emoji="🌲" onclick="selectEmoji(this,'🌲')">🌲</button>
+          <button class="emoji-btn" data-emoji="⚠️" onclick="selectEmoji(this,'⚠️')">⚠️</button>
+          <button class="emoji-btn" data-emoji="🏔️" onclick="selectEmoji(this,'🏔️')">🏔️</button>
+          <button class="emoji-btn" data-emoji="🦆" onclick="selectEmoji(this,'🦆')">🦆</button>
+          <button class="emoji-btn" data-emoji="🐗" onclick="selectEmoji(this,'🐗')">🐗</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Pin Name</label>
+        <input type="text" id="pin-name" placeholder="e.g. Duck Blind #2" maxlength="50"/>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="pin-notes" placeholder="Add notes about this location..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="pin-category">
+          <option value="hunting">🦌 Hunting</option>
+          <option value="fishing">🎣 Fishing</option>
+          <option value="camping">⛺ Camping</option>
+          <option value="parking">🚗 Parking / Trailhead</option>
+          <option value="waypoint">📍 General Waypoint</option>
+          <option value="hazard">⚠️ Hazard / Warning</option>
+          <option value="poi">⭐ Point of Interest</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Coordinates</label>
+        <input type="text" id="pin-coords-input" placeholder="Lat, Lng" readonly/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePin()"><i class="fa-solid fa-floppy-disk" style="margin-right:6px;"></i>Save Pin</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- ====== SCRIPTS ====== -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
+<script>
+// ================================================================
+// SPORTSMAN MAP PRO - MAIN APPLICATION
+// ================================================================
+
+'use strict';
+
+// ── CONFIG ──────────────────────────────────────────────────────
+const CONFIG = {
+  defaultCenter: [46.7296, -94.6859], // Minnesota
+  defaultZoom: 7,
+  minZoom: 3,
+  maxZoom: 19,
+  cookieExpire: 365,
+};
+
+// ── STATE ────────────────────────────────────────────────────────
+const STATE = {
+  map: null,
+  basemapLayers: {},
+  overlayLayers: {},
+  activeBasemap: 'openstreet',
+  pins: [],
+  tempMarker: null,
+  measuring: false,
+  measurePoints: [],
+  measureLine: null,
+  gpsActive: false,
+  gpsWatcher: null,
+  gpsMarker: null,
+  gpsCircle: null,
+  identifyEnabled: true,
+  units: 'imperial',
+  coordFormat: 'dd',
+  panelCollapsed: false,
+  panelPosition: 'right',
+  theme: 'blue',
+  darkMode: false,
+  selectedEmoji: '📍',
+  currentLat: null,
+  currentLng: null,
+  scaleControl: null,
+  drawLayer: null,
+  layerOpacity: 0.75,
+};
+
+// ── BASEMAP DEFINITIONS ─────────────────────────────────────────
+const BASEMAPS = {
+  openstreet: {
+    name: 'OpenStreetMap',
+    emoji: '🗺️',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    options: { attribution: '© OpenStreetMap contributors', maxZoom: 19 }
+  },
+  satellite: {
+    name: 'Satellite',
+    emoji: '🛰️',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    options: { attribution: '© Esri / DigitalGlobe', maxZoom: 19 }
+  },
+  topo: {
+    name: 'USGS Topo',
+    emoji: '⛰️',
+    url: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
+    options: { attribution: '© USGS', maxZoom: 16 }
+  },
+  natgeo: {
+    name: 'National Geo',
+    emoji: '📗',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}',
+    options: { attribution: '© Esri / National Geographic', maxZoom: 16 }
+  },
+  dark: {
+    name: 'Dark Mode',
+    emoji: '🌑',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    options: { attribution: '© CartoDB', maxZoom: 19 }
+  },
+  light: {
+    name: 'Light Clean',
+    emoji: '☀️',
+    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    options: { attribution: '© CartoDB', maxZoom: 19 }
+  },
+  outdoors: {
+    name: 'Outdoors',
+    emoji: '🌄',
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    options: { attribution: '© OpenTopoMap', maxZoom: 17 }
+  },
+  terrain: {
+    name: 'Terrain',
+    emoji: '🏔️',
+    url: 'https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}{r}.png',
+    options: { attribution: '© Stamen / OpenStreetMap', maxZoom: 18, subdomains: 'abcd' }
+  },
+  hybrid: {
+    name: 'Hybrid Labels',
+    emoji: '🏷️',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+    options: { attribution: '© Esri', maxZoom: 19 }
+  },
+  usgsImagery: {
+    name: 'USGS Imagery',
+    emoji: '📡',
+    url: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}',
+    options: { attribution: '© USGS', maxZoom: 16 }
+  },
+};
+
+// ── OVERLAY LAYER DEFINITIONS ────────────────────────────────────
+const OVERLAY_DEFS = {
+  topo: {
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    options: { attribution:'© OpenTopoMap', maxZoom:17, opacity:0.5 }
+  },
+  hillshade: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}',
+    options: { attribution:'© Esri', maxZoom:16, opacity:0.4 }
+  },
+  'weather-radar': {
+    url: 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png',
+    options: { attribution:'© Iowa Environmental Mesonet', opacity:0.6, maxZoom:19 }
+  },
+  wetlands: {
+    url: 'https://www.fws.gov/wetlands/arcgis/rest/services/Wetlands/MapServer/tile/{z}/{y}/{x}',
+    options: { attribution:'© FWS Wetlands', opacity:0.6, maxZoom:15 }
+  },
+};
+
+// ── HUNTING/FISHING SAMPLE DATA (Real coords, demo polygons) ─────
+const SAMPLE_DATA = {
+  hunting: [
+    { lat:46.85, lng:-93.95, name:'WMU 108', desc:'Deer hunting zone', type:'zone', color:'#f97316' },
+    { lat:47.3,  lng:-94.1,  name:'WMU 134', desc:'Multi-species zone', type:'zone', color:'#f97316' },
+    { lat:46.2,  lng:-94.8,  name:'WMU 220', desc:'Archery zone', type:'zone', color:'#f97316' },
+  ],
+  fishing: [
+    { lat:47.947, lng:-93.398, name:'Lake Vermilion', desc:'Walleye, Bass, Muskie', type:'lake' },
+    { lat:47.174, lng:-93.536, name:'Mille Lacs Lake', desc:'Walleye, Perch, Northern', type:'lake' },
+    { lat:46.921, lng:-95.740, name:'Otter Tail Lake', desc:'Walleye, Bass, Crappie', type:'lake' },
+    { lat:48.102, lng:-94.463, name:'Upper Red Lake', desc:'Walleye, Perch', type:'lake' },
+  ],
+  camping: [
+    { lat:47.82, lng:-90.84, name:'Boundary Waters', desc:'Wilderness camping', type:'camp' },
+    { lat:47.36, lng:-93.52, name:'Itasca State Park', desc:'Campground & cabins', type:'camp' },
+    { lat:44.86, lng:-93.23, name:'Frontenac SP', desc:'Mississippi River camping', type:'camp' },
+  ],
+  access: [
+    { lat:47.18, lng:-93.54, name:'Mille Lacs Boat Launch', desc:'Public boat ramp', type:'launch' },
+    { lat:47.89, lng:-93.27, name:'Vermilion Launch', desc:'State water access', type:'launch' },
+  ],
+};
+
+// ================================================================
+// INITIALIZATION
+// ================================================================
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    initApp();
+    document.getElementById('loading').style.opacity = '0';
+    document.getElementById('loading').style.transition = '0.5s';
+    setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
+  }, 1800);
+});
+
+function initApp() {
+  loadSettings();
+  initMap();
+  initBasemapGrid();
+  initOverlayLayers();
+  initPins();
+  initWeather();
+  initEventListeners();
+  initSearch();
+  initSolunar();
+  showToast('🗺️ Welcome to SportsmanMap Pro!');
+}
+
+// ================================================================
+// MAP INIT
+// ================================================================
+function initMap() {
+  STATE.map = L.map('map', {
+    center: CONFIG.defaultCenter,
+    zoom: CONFIG.defaultZoom,
+    zoomControl: false,
+    attributionControl: true,
+  });
+
+  // Add default basemap
+  const bm = BASEMAPS[STATE.activeBasemap];
+  STATE.basemapLayers[STATE.activeBasemap] = L.tileLayer(bm.url, bm.options).addTo(STATE.map);
+
+  // Draw layer
+  STATE.drawLayer = new L.FeatureGroup().addTo(STATE.map);
+
+  // Scale control
+  STATE.scaleControl = L.control.scale({ imperial: true, metric: true, position: 'bottomleft' }).addTo(STATE.map);
+
+  // Map events
+  STATE.map.on('mousemove', onMapMouseMove);
+  STATE.map.on('click', onMapClick);
+  STATE.map.on('zoom', updateCoords);
+
+  // Load initial layers from saved state
+  loadInitialLayers();
+}
+
+function onMapMouseMove(e) {
+  STATE.currentLat = e.latlng.lat;
+  STATE.currentLng = e.latlng.lng;
+  updateCoords();
+}
+
+function updateCoords() {
+  if (!STATE.map) return;
+  const lat = STATE.currentLat;
+  const lng = STATE.currentLng;
+  if (lat === null) return;
+
+  let latStr, lngStr;
+  if (STATE.coordFormat === 'dd') {
+    latStr = lat.toFixed(5);
+    lngStr = lng.toFixed(5);
+  } else if (STATE.coordFormat === 'dms') {
+    latStr = toDMS(lat, 'lat');
+    lngStr = toDMS(lng, 'lng');
+  } else {
+    latStr = toDDM(lat, 'lat');
+    lngStr = toDDM(lng, 'lng');
+  }
+
+  document.getElementById('cur-lat').textContent = latStr;
+  document.getElementById('cur-lng').textContent = lngStr;
+  document.getElementById('cur-zoom').textContent = STATE.map.getZoom();
+}
+
+function toDMS(deg, type) {
+  const abs = Math.abs(deg);
+  const d = Math.floor(abs);
+  const mFull = (abs - d) * 60;
+  const m = Math.floor(mFull);
+  const s = ((mFull - m) * 60).toFixed(1);
+  const dir = type === 'lat' ? (deg >= 0 ? 'N' : 'S') : (deg >= 0 ? 'E' : 'W');
+  return `${d}°${m}'${s}"${dir}`;
+}
+
+function toDDM(deg, type) {
+  const abs = Math.abs(deg);
+  const d = Math.floor(abs);
+  const m = ((abs - d) * 60).toFixed(3);
+  const dir = type === 'lat' ? (deg >= 0 ? 'N' : 'S') : (deg >= 0 ? 'E' : 'W');
+  return `${d}°${m}'${dir}`;
+}
+
+// ================================================================
+// BASEMAP GRID
+// ================================================================
+function initBasemapGrid() {
+  const grid = document.getElementById('basemap-grid');
+  grid.innerHTML = '';
+  Object.entries(BASEMAPS).forEach(([key, bm]) => {
+    const card = document.createElement('div');
+    card.className = 'basemap-card' + (key === STATE.activeBasemap ? ' active' : '');
+    card.onclick = () => switchBasemap(key);
+    card.id = 'bm-' + key;
+    card.innerHTML = `
+      <div class="basemap-preview">
+        <div class="preview-label">${bm.emoji}</div>
+      </div>
+      <div class="basemap-name">${bm.name}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function switchBasemap(key) {
+  if (!BASEMAPS[key]) return;
+
+  // Remove old
+  if (STATE.basemapLayers[STATE.activeBasemap]) {
+    STATE.map.removeLayer(STATE.basemapLayers[STATE.activeBasemap]);
+  }
+
+  // Add new
+  const bm = BASEMAPS[key];
+  if (!STATE.basemapLayers[key]) {
+    STATE.basemapLayers[key] = L.tileLayer(bm.url, bm.options);
+  }
+  STATE.basemapLayers[key].addTo(STATE.map);
+  STATE.basemapLayers[key].bringToBack();
+
+  // Update active
+  document.querySelectorAll('.basemap-card').forEach(c => c.classList.remove('active'));
+  document.getElementById('bm-' + key)?.classList.add('active');
+
+  STATE.activeBasemap = key;
+  saveSetting('basemap', key);
+  showToast(`🗺️ Basemap: ${bm.name}`);
+}
+
+// ================================================================
+// OVERLAY LAYERS
+// ================================================================
+function initOverlayLayers() {
+  // Pre-create tile-based overlays
+  Object.entries(OVERLAY_DEFS).forEach(([key, def]) => {
+    STATE.overlayLayers[key] = L.tileLayer(def.url, def.options);
+  });
+
+  // Create marker-based layers from sample data
+  createMarkerLayer('fishing', SAMPLE_DATA.fishing, '🎣', '#0ea5e9');
+  createMarkerLayer('camping', SAMPLE_DATA.camping, '⛺', '#16a34a');
+  createMarkerLayer('access', SAMPLE_DATA.access, '⚓', '#0284c7');
+  createMarkerLayer('hunting', SAMPLE_DATA.hunting, '🦌', '#f97316');
+  createMarkerLayer('fire', generateFireData(), '🔥', '#ef4444');
+  createMarkerLayer('trout', generateTroutData(), '🐟', '#0d9488');
+  createMarkerLayer('ice', generateIceData(), '🧊', '#7dd3fc');
+  createMarkerLayer('deer', generateDeerData(), '🦌', '#78350f');
+  createMarkerLayer('turkey', generateTurkeyData(), '🦃', '#a16207');
+  createMarkerLayer('waterfowl', generateWaterfowlData(), '🦆', '#0369a1');
+  createMarkerLayer('pheasant', generatePheasantData(), '🐦', '#be185d');
+  createMarkerLayer('trails', generateTrailData(), '🥾', '#8b5cf6');
+  createMarkerLayer('atv', generateATVData(), '🏍️', '#dc2626');
+  createMarkerLayer('snowmobile', generateSnowData(), '🏔️', '#0284c7');
+
+  // WMS-style overlays (simulated with circles for public/private land)
+  createLandLayer('public', 'rgba(34,197,94,0.15)', '#22c55e');
+  createLandLayer('private', 'rgba(239,68,68,0.1)', '#ef4444');
+  createParcelLayer();
+  createLakesLayer();
+  createWetlandsLayer();
+  createWindLayer();
+}
+
+function createMarkerLayer(key, data, emoji, color) {
+  const group = L.featureGroup();
+  data.forEach(item => {
+    const icon = L.divIcon({
+      html: `<div style="
+        background:${color};
+        width:34px;height:34px;border-radius:50% 50% 50% 0;
+        transform:rotate(-45deg);
+        display:flex;align-items:center;justify-content:center;
+        box-shadow:0 2px 6px rgba(0,0,0,0.3);
+        border:2px solid rgba(255,255,255,0.5);
+      ">
+        <span style="transform:rotate(45deg);font-size:14px">${emoji}</span>
+      </div>`,
+      iconSize: [34, 34],
+      iconAnchor: [17, 34],
+      popupAnchor: [0, -36],
+      className: '',
+    });
+    const m = L.marker([item.lat, item.lng], { icon });
+    m.bindPopup(`
+      <div style="min-width:180px">
+        <b style="font-size:1rem">${emoji} ${item.name}</b><br>
+        <span style="color:var(--text-muted);font-size:0.8rem">${item.desc || ''}</span>
+        ${item.type ? `<br><span class="badge badge-green" style="margin-top:6px;display:inline-block">${item.type}</span>` : ''}
+      </div>
+    `);
+    group.addLayer(m);
+  });
+  STATE.overlayLayers[key] = group;
+}
+
+function createLandLayer(key, fillColor, strokeColor) {
+  const group = L.featureGroup();
+  const regions = [
+    [[47.0,  -95.0],[47.0,  -93.5],[46.2,  -93.5],[46.2,  -95.0]],
+    [[47.5,  -94.0],[47.5,  -92.8],[46.8,  -92.8],[46.8,  -94.0]],
+    [[48.2,  -94.8],[48.2,  -93.2],[47.6,  -93.2],[47.6,  -94.8]],
+  ];
+  regions.forEach(coords => {
+    L.polygon(coords, {
+      color: strokeColor, weight: 1, fillColor, fillOpacity: 0.3, opacity: 0.7,
+    }).addTo(group);
+  });
+  STATE.overlayLayers[key] = group;
+}
+
+function createParcelLayer() {
+  const group = L.featureGroup();
+  for (let i = 0; i < 20; i++) {
+    const baseLat = 46.5 + Math.random() * 2;
+    const baseLng = -95.5 + Math.random() * 3;
+    const size = 0.05 + Math.random() * 0.1;
+    L.rectangle([[baseLat, baseLng],[baseLat + size, baseLng + size * 1.5]], {
+      color: '#fbbf24', weight: 1, fill: false, dashArray: '4 4',
+    }).bindPopup(`<b>📋 Parcel</b><br>Size: ~${(size * 111 * size * 111 * 0.247105).toFixed(1)} acres<br>County: Crow Wing Co.`).addTo(group);
+  }
+  STATE.overlayLayers['parcels'] = group;
+}
+
+function createLakesLayer() {
+  const group = L.featureGroup();
+  SAMPLE_DATA.fishing.forEach(lake => {
+    L.circle([lake.lat, lake.lng], {
+      radius: 3000 + Math.random() * 5000,
+      color: '#0ea5e9', weight: 2, fillColor: '#bae6fd', fillOpacity: 0.4,
+    }).bindPopup(`<b>🐟 ${lake.name}</b><br>${lake.desc}`).addTo(group);
+  });
+  STATE.overlayLayers['lakes'] = group;
+}
+
+function createWetlandsLayer() {
+  const group = L.featureGroup();
+  const wet = [
+    [47.3, -94.5],[46.8, -95.1],[47.9, -93.7],[46.4, -94.2],[48.0, -94.1],
+  ];
+  wet.forEach(([lat, lng]) => {
+    L.circle([lat, lng], {
+      radius: 800 + Math.random() * 1500,
+      color: '#064e3b', weight: 1, fillColor: '#6ee7b7', fillOpacity: 0.45,
+    }).bindPopup(`<b>🌿 Wetland Area</b><br>National Wetland Inventory`).addTo(group);
+  });
+  STATE.overlayLayers['wetlands'] = group;
+}
+
+function createWindLayer() {
+  const group = L.featureGroup();
+  const points = [
+    [47.5, -94.0],[46.8, -93.8],[47.0, -95.2],[47.8, -93.3],[46.5, -94.5],
+  ];
+  points.forEach(([lat, lng]) => {
+    const speed = Math.floor(5 + Math.random() * 20);
+    L.marker([lat, lng], {
+      icon: L.divIcon({
+        html: `<div style="background:#0891b2;color:#fff;padding:3px 6px;border-radius:4px;font-size:0.7rem;font-weight:700;white-space:nowrap">💨 ${speed}mph NW</div>`,
+        className: '', iconAnchor: [30, 15]
+      })
+    }).addTo(group);
+  });
+  STATE.overlayLayers['wind'] = group;
+}
+
+// ── SAMPLE DATA GENERATORS ───────────────────────────────────────
+function generateFireData() {
+  return Array.from({length:5}, (_,i) => ({
+    lat: 46.5 + Math.random() * 2.5, lng: -95.5 + Math.random() * 3,
+    name: `Fire Hot Spot #${i+1}`, desc: 'NASA FIRMS Active Fire',
+  }));
+}
+function generateTroutData() {
+  return [
+    { lat:46.92, lng:-90.84, name:'Brule River', desc:'Class 1 Trout Stream' },
+    { lat:47.14, lng:-91.56, name:'Baptism River', desc:'Steelhead runs' },
+    { lat:46.57, lng:-91.79, name:'Bois Brule', desc:'Trophy trout water' },
+  ];
+}
+function generateIceData() {
+  return Array.from({length:6}, (_,i) => ({
+    lat: 46.8 + Math.random() * 1.8, lng: -95.2 + Math.random() * 2.5,
+    name: `Ice Spot #${i+1}`, desc: `Depth: ${Math.floor(8+Math.random()*20)}" | Walleye, Perch`,
+  }));
+}
+function generateDeerData() {
+  return Array.from({length:8}, (_,i) => ({
+    lat: 46.5 + Math.random() * 2, lng: -95.5 + Math.random() * 3,
+    name: `Stand #${i+1}`, desc: `Trail cam active · ${Math.floor(1+Math.random()*5)} bucks scouted`,
+  }));
+}
+function generateTurkeyData() {
+  return Array.from({length:5}, (_,i) => ({
+    lat: 44.5 + Math.random() * 2, lng: -94.5 + Math.random() * 3,
+    name: `Turkey Zone ${i+1}`, desc: `Spring season open · ${Math.floor(10+Math.random()*30)} birds reported`,
+  }));
+}
+function generateWaterfowlData() {
+  return Array.from({length:6}, (_,i) => ({
+    lat: 47.2 + Math.random() * 1.5, lng: -95.5 + Math.random() * 3,
+    name: `Marsh ${i+1}`, desc: `Duck blind · ${['Mallard','Teal','Pintail'][i%3]} habitat`,
+  }));
+}
+function generatePheasantData() {
+  return Array.from({length:5}, (_,i) => ({
+    lat: 44.2 + Math.random() * 2, lng: -96.5 + Math.random() * 3,
+    name: `CRP Block ${i+1}`, desc: `WRP habitat · Pheasant population: ${['High','Medium','Low'][i%3]}`,
+  }));
+}
+function generateTrailData() {
+  return [
+    { lat:47.83, lng:-90.84, name:'Border Route Trail', desc:'64 miles · Difficult' },
+    { lat:46.98, lng:-90.63, name:'Superior Hiking Trail', desc:'310 miles · Moderate' },
+    { lat:47.36, lng:-93.52, name:'Itasca Trail', desc:'17 miles · Easy' },
+  ];
+}
+function generateATVData() {
+  return Array.from({length:5}, (_,i) => ({
+    lat: 46.5 + Math.random() * 2, lng: -94.5 + Math.random() * 3,
+    name: `OHV Trail ${i+1}`, desc: `${Math.floor(10+Math.random()*40)} miles · All skill levels`,
+  }));
+}
+function generateSnowData() {
+  return [
+    { lat:47.5, lng:-93.8, name:'Cuyuna Snowmobile Trail', desc:'120 miles groomed' },
+    { lat:47.9, lng:-90.9, name:'Arrowhead Trail', desc:'225 miles · Lake Superior region' },
+    { lat:46.8, lng:-94.1, name:'Brainerd Trail System', desc:'160 miles groomed daily' },
+  ];
+}
+
+// ================================================================
+// TOGGLE LAYER
+// ================================================================
+function toggleLayer(key, checked) {
+  if (!STATE.overlayLayers[key] && !OVERLAY_DEFS[key]) return;
+
+  const el = document.getElementById('lyr-' + key);
+  const isOn = checked !== undefined ? checked : (el ? el.checked : false);
+
+  // Sync checkbox
+  if (el && checked === undefined) {
+    el.checked = !el.checked;
+    return;
+  }
+
+  if (isOn) {
+    if (!STATE.overlayLayers[key]) {
+      const def = OVERLAY_DEFS[key];
+      STATE.overlayLayers[key] = L.tileLayer(def.url, { ...def.options, opacity: STATE.layerOpacity });
+    }
+    STATE.overlayLayers[key].addTo(STATE.map);
+    STATE.overlayLayers[key].setOpacity?.(STATE.layerOpacity);
+    showToast(`✅ Layer On: ${key.charAt(0).toUpperCase() + key.slice(1)}`);
+  } else {
+    if (STATE.overlayLayers[key] && STATE.map.hasLayer(STATE.overlayLayers[key])) {
+      STATE.map.removeLayer(STATE.overlayLayers[key]);
+    }
+  }
+}
+
+function loadInitialLayers() {
+  // Load lakes and public by default
+  const checks = ['lyr-lakes','lyr-public'];
+  checks.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.checked) toggleLayer(id.replace('lyr-',''), true);
+  });
+}
+
+function setLayerOpacity(val) {
+  STATE.layerOpacity = val / 100;
+  document.getElementById('opacity-val').textContent = val + '%';
+  Object.values(STATE.overlayLayers).forEach(layer => {
+    if (STATE.map.hasLayer(layer)) {
+      layer.setOpacity?.(STATE.layerOpacity);
+    }
+  });
+}
+
+// ================================================================
+// MAP CLICK / PIN
+// ================================================================
+function onMapClick(e) {
+  if (STATE.measuring) {
+    addMeasurePoint(e.latlng);
+    return;
+  }
+  if (STATE.identifyEnabled) {
+    showClickInfo(e.latlng);
+  }
+}
+
+function showClickInfo(latlng) {
+  L.popup()
+    .setLatLng(latlng)
+    .setContent(`
+      <div style="min-width:200px">
+        <b>📍 Location</b><br>
+        <span style="font-size:0.8rem;color:#64748b">
+          ${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}
+        </span><br>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+          <button onclick="openPinModalAt(${latlng.lat},${latlng.lng})" 
+            style="background:#2563eb;color:#fff;border:none;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:0.75rem">
+            📌 Save Pin
+          </button>
+          <button onclick="copyCoords(${latlng.lat},${latlng.lng})" 
+            style="background:#f1f5f9;border:1px solid #e2e8f0;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:0.75rem">
+            📋 Copy
+          </button>
+        </div>
+      </div>
+    `)
+    .openOn(STATE.map);
+}
+
+function copyCoords(lat, lng) {
+  navigator.clipboard?.writeText(`${lat.toFixed(6)}, ${lng.toFixed(6)}`)
+    .then(() => showToast('📋 Coordinates copied!'))
+    .catch(() => showToast('Coords: ' + lat.toFixed(5) + ', ' + lng.toFixed(5)));
+}
+
+// ================================================================
+// PINS
+// ================================================================
+function initPins() {
+  const saved = getCookie('sportsman_pins');
+  if (saved) {
+    try { STATE.pins = JSON.parse(saved); } catch(e) { STATE.pins = []; }
+  }
+  renderPinList();
+  STATE.pins.forEach(pin => addPinMarker(pin));
+}
+
+function openPinModal() {
+  const center = STATE.map.getCenter();
+  openPinModalAt(center.lat, center.lng);
+}
+
+function openPinModalAt(lat, lng) {
+  STATE.map.closePopup();
+  document.getElementById('pin-coords-input').value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  document.getElementById('pin-name').value = '';
+  document.getElementById('pin-notes').value = '';
+  document.getElementById('pin-category').value = 'waypoint';
+  STATE.selectedEmoji = '📍';
+  document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.emoji-btn[data-emoji="📍"]')?.classList.add('active');
+  STATE.tempLat = lat;
+  STATE.tempLng = lng;
+  document.getElementById('modal-overlay').classList.add('active');
+  setTimeout(() => document.getElementById('pin-name').focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('active');
+}
+
+function selectEmoji(btn, emoji) {
+  document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  STATE.selectedEmoji = emoji;
+}
+
+function savePin() {
+  const name = document.getElementById('pin-name').value.trim() || 'Saved Location';
+  const notes = document.getElementById('pin-notes').value.trim();
+  const category = document.getElementById('pin-category').value;
+  const lat = STATE.tempLat;
+  const lng = STATE.tempLng;
+
+  const pin = {
+    id: Date.now(),
+    name, notes, category,
+    emoji: STATE.selectedEmoji,
+    lat, lng,
+    created: new Date().toLocaleDateString(),
+  };
+
+  STATE.pins.push(pin);
+  savePinsToCookie();
+  addPinMarker(pin);
+  renderPinList();
+  closeModal();
+  STATE.map.flyTo([lat, lng], 14);
+  showToast(`📌 Pin saved: ${name}`);
+}
+
+function addPinMarker(pin) {
+  const icon = L.divIcon({
+    html: `<div style="
+      font-size:22px;
+      filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+      cursor:pointer;
+    ">${pin.emoji}</div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+    popupAnchor: [0, -30],
+    className: '',
+  });
+
+  const marker = L.marker([pin.lat, pin.lng], { icon }).addTo(STATE.map);
+  marker.bindPopup(`
+    <div style="min-width:200px">
+      <b>${pin.emoji} ${pin.name}</b><br>
+      <span style="font-size:0.75rem;color:#64748b">${pin.category} · ${pin.created}</span>
+      ${pin.notes ? `<p style="margin-top:6px;font-size:0.8rem">${pin.notes}</p>` : ''}
+      <hr style="margin:8px 0;border-color:#e2e8f0">
+      <span style="font-size:0.7rem;color:#94a3b8">${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)}</span><br>
+      <div style="margin-top:6px">
+        <button onclick="deletePin(${pin.id})" style="background:#fee2e2;color:#dc2626;border:none;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:0.75rem">🗑️ Delete</button>
+      </div>
+    </div>
+  `);
+
+  pin._marker = marker;
+}
+
+function renderPinList() {
+  const list = document.getElementById('pin-list');
+  if (STATE.pins.length === 0) {
+    list.innerHTML = `
+      <div style="text-align:center;padding:24px;color:var(--text-muted)">
+        <div style="font-size:2rem;margin-bottom:8px">📍</div>
+        <div style="font-size:0.85rem">No saved pins yet.<br>Click the map or use + Add Pin</div>
+      </div>
+    `;
+    return;
+  }
+  list.innerHTML = STATE.pins.map(pin => `
+    <div class="pin-item" onclick="flyToPin(${pin.id})">
+      <div class="pin-icon">${pin.emoji}</div>
+      <div class="pin-info">
+        <div class="pin-name">${pin.name}</div>
+        <div class="pin-coords">${pin.lat.toFixed(4)}, ${pin.lng.toFixed(4)} · ${pin.created}</div>
+      </div>
+      <button class="pin-del" onclick="event.stopPropagation();deletePin(${pin.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>
+    </div>
+  `).join('');
+}
+
+function flyToPin(id) {
+  const pin = STATE.pins.find(p => p.id === id);
+  if (!pin) return;
+  STATE.map.flyTo([pin.lat, pin.lng], 15, { duration: 1.5 });
+  if (pin._marker) pin._marker.openPopup();
+}
+
+function deletePin(id) {
+  const idx = STATE.pins.findIndex(p => p.id === id);
+  if (idx === -1) return;
+  const pin = STATE.pins[idx];
+  if (pin._marker) STATE.map.removeLayer(pin._marker);
+  STATE.pins.splice(idx, 1);
+  savePinsToCookie();
+  renderPinList();
+  STATE.map.closePopup();
+  showToast('🗑️ Pin deleted');
+}
+
+function savePinsToCookie() {
+  const data = STATE.pins.map(p => ({
+    id: p.id, name: p.name, notes: p.notes, category: p.category,
+    emoji: p.emoji, lat: p.lat, lng: p.lng, created: p.created,
+  }));
+  setCookie('sportsman_pins', JSON.stringify(data), CONFIG.cookieExpire);
+}
+
+function exportPins(format) {
+  if (STATE.pins.length === 0) { showToast('❌ No pins to export'); return; }
+  
+  let content, filename, mime;
+
+  if (format === 'gpx') {
+    content = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="SportsmanMap Pro">
+  <metadata><name>SportsmanMap Pins</name></metadata>
+${STATE.pins.map(p => `  <wpt lat="${p.lat}" lon="${p.lng}">
+    <name>${p.name}</name>
+    <desc>${p.notes || ''}</desc>
+  </wpt>`).join('\n')}
+</gpx>`;
+    filename = 'sportsmanmap-pins.gpx';
+    mime = 'application/gpx+xml';
+
+  } else if (format === 'kml') {
+    content = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document><name>SportsmanMap Pins</name>
+${STATE.pins.map(p => `  <Placemark>
+    <name>${p.name}</name>
+    <description>${p.notes || ''}</description>
+    <Point><coordinates>${p.lng},${p.lat},0</coordinates></Point>
+  </Placemark>`).join('\n')}
+</Document></kml>`;
+    filename = 'sportsmanmap-pins.kml';
+    mime = 'application/vnd.google-earth.kml+xml';
+
+  } else {
+    content = JSON.stringify(STATE.pins.map(p => ({
+      name: p.name, category: p.category, notes: p.notes,
+      lat: p.lat, lng: p.lng, created: p.created,
+    })), null, 2);
+    filename = 'sportsmanmap-pins.json';
+    mime = 'application/json';
+  }
+
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+  showToast(`📥 Exported as ${format.toUpperCase()}`);
+}
+
+// ================================================================
+// GPS / LOCATION
+// ================================================================
+function toggleGPS() {
+  if (STATE.gpsActive) {
+    stopGPS();
+  } else {
+    startGPS();
+  }
+}
+
+function startGPS() {
+  if (!navigator.geolocation) { showToast('❌ Geolocation not supported'); return; }
+  showToast('📡 Getting location...');
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+      if (STATE.gpsMarker) STATE.map.removeLayer(STATE.gpsMarker);
+      if (STATE.gpsCircle) STATE.map.removeLayer(STATE.gpsCircle);
+
+      const icon = L.divIcon({
+        html: `<div style="
+          width:16px;height:16px;background:#2563eb;
+          border:3px solid #fff;border-radius:50%;
+          box-shadow:0 0 0 4px rgba(37,99,235,0.3);
+        "></div>`,
+        iconSize:[16,16], iconAnchor:[8,8], className:'',
+      });
+
+      STATE.gpsMarker = L.marker([lat, lng], { icon }).addTo(STATE.map)
+        .bindPopup(`📍 You are here<br>Accuracy: ~${Math.round(accuracy)}m`);
+      STATE.gpsCircle = L.circle([lat, lng], {
+        radius: accuracy, color:'#2563eb', fillColor:'#bfdbfe',
+        fillOpacity:0.2, weight:1,
+      }).addTo(STATE.map);
+
+      STATE.map.flyTo([lat, lng], 14, { duration: 2 });
+      STATE.gpsActive = true;
+      document.getElementById('btn-gps').classList.add('gps-active');
+      document.getElementById('gps-display-toggle').checked = true;
+      showToast('📍 Location found!');
+    },
+    (err) => showToast('❌ Location error: ' + err.message),
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
+function stopGPS() {
+  if (STATE.gpsMarker) { STATE.map.removeLayer(STATE.gpsMarker); STATE.gpsMarker = null; }
+  if (STATE.gpsCircle) { STATE.map.removeLayer(STATE.gpsCircle); STATE.gpsCircle = null; }
+  STATE.gpsActive = false;
+  document.getElementById('btn-gps').classList.remove('gps-active');
+  showToast('📍 GPS stopped');
+}
+
+function toggleGpsDisplay(on) {
+  if (on) startGPS();
+  else stopGPS();
+}
+
+// ================================================================
+// MEASURING
+// ================================================================
+function toggleMeasure() {
+  STATE.measuring = !STATE.measuring;
+  const btn = document.getElementById('btn-measure');
+  const result = document.getElementById('measure-result');
+
+  if (STATE.measuring) {
+    STATE.measurePoints = [];
+    if (STATE.measureLine) { STATE.map.removeLayer(STATE.measureLine); STATE.measureLine = null; }
+    btn.style.background = 'rgba(245,158,11,0.4)';
+    result.style.display = 'block';
+    document.getElementById('measure-dist').textContent = 'Click map to start';
+    STATE.map.getContainer().style.cursor = 'crosshair';
+    showToast('📏 Click points to measure. Click ruler to stop.');
+  } else {
+    btn.style.background = '';
+    result.style.display = 'none';
+    STATE.map.getContainer().style.cursor = '';
+    if (STATE.measureLine) { STATE.map.removeLayer(STATE.measureLine); STATE.measureLine = null; }
+    STATE.measurePoints = [];
+  }
+}
+
+function addMeasurePoint(latlng) {
+  STATE.measurePoints.push(latlng);
+  if (STATE.measureLine) STATE.map.removeLayer(STATE.measureLine);
+
+  STATE.measureLine = L.polyline(STATE.measurePoints, {
+    color: '#f59e0b', weight: 3, dashArray: '8 4',
+  }).addTo(STATE.map);
+
+  if (STATE.measurePoints.length >= 2) {
+    let totalDist = 0;
+    for (let i = 1; i < STATE.measurePoints.length; i++) {
+      totalDist += STATE.measurePoints[i-1].distanceTo(STATE.measurePoints[i]);
+    }
+    const dist = STATE.units === 'metric'
+      ? (totalDist >= 1000 ? (totalDist/1000).toFixed(2) + ' km' : Math.round(totalDist) + ' m')
+      : (totalDist >= 1609 ? (totalDist/1609.34).toFixed(2) + ' mi' : Math.round(totalDist * 3.28084) + ' ft');
+    document.getElementById('measure-dist').textContent = dist;
+  }
+}
+
+// ================================================================
+// WEATHER
+// ================================================================
+async function initWeather() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+      () => fetchWeather(CONFIG.defaultCenter[0], CONFIG.defaultCenter[1])
+    );
+  } else {
+    fetchWeather(CONFIG.defaultCenter[0], CONFIG.defaultCenter[1]);
+  }
+}
+
+async function fetchWeather(lat, lng) {
+  try {
+    // Open-Meteo free weather API (no key needed)
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&hourly=relativehumidity_2m,windspeed_10m,surface_pressure,visibility&daily=sunrise,sunset&forecast_days=5&temperature_unit=fahrenheit&windspeed_unit=mph&timezone=auto`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const cw = data.current_weather;
+    const temp = Math.round(cw.temperature);
+    const ws = Math.round(cw.windspeed);
+    const wmo = cw.weathercode;
+
+    const emoji = wmoToEmoji(wmo);
+    const desc = wmoToDesc(wmo);
+
+    document.getElementById('w-icon').textContent = emoji;
+    document.getElementById('w-temp').textContent = `${temp}°F`;
+    document.getElementById('w-desc').textContent = desc;
+    document.getElementById('w-wind').textContent = `Wind: ${ws} mph`;
+    document.getElementById('w-humid').textContent = `Humidity: ${data.hourly?.relativehumidity_2m?.[new Date().getHours()] || '--'}%`;
+    document.getElementById('w-pressure').textContent = `Pressure: ${data.hourly?.surface_pressure?.[0] || '--'} hPa`;
+    document.getElementById('w-vis').textContent = `Visibility: ${Math.round((data.hourly?.visibility?.[0] || 10000) / 1609.34 * 10) / 10} mi`;
+
+    // City name via nominatim
+    const geo = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+    const geoData = await geo.json();
+    const city = geoData.address?.city || geoData.address?.county || geoData.address?.state || 'Your Location';
+    document.getElementById('w-city').textContent = city;
+
+    // Sunrise/Sunset
+    if (data.daily) {
+      const sr = new Date(data.daily.sunrise[0]);
+      const ss = new Date(data.daily.sunset[0]);
+      document.getElementById('sunrise').textContent = sr.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+      document.getElementById('sunset').textContent = ss.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+    }
+
+    // 5-day forecast
+    renderForecast(data, lat);
+  } catch(e) {
+    document.getElementById('w-desc').textContent = 'Weather unavailable';
+    renderDemoForecast();
+  }
+}
+
+function renderForecast(data, lat) {
+  const row = document.getElementById('forecast-row');
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  row.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() + i);
+    const max = Math.round(data.hourly?.temperature_2m?.[i*24] || 60 + Math.random()*20);
+    row.innerHTML += `
+      <div class="forecast-day">
+        <div class="f-day">${days[date.getDay()]}</div>
+        <div class="f-icon">${['☀️','⛅','🌧️','🌤️','❄️'][i%5]}</div>
+        <div class="f-temp">${max}°F</div>
+      </div>
+    `;
+  }
+}
+
+function renderDemoForecast() {
+  const row = document.getElementById('forecast-row');
+  const days = ['Mon','Tue','Wed','Thu','Fri'];
+  const icons = ['☀️','⛅','🌧️','🌤️','❄️'];
+  const temps = [48, 52, 39, 61, 44];
+  row.innerHTML = days.map((d,i) => `
+    <div class="forecast-day">
+      <div class="f-day">${d}</div>
+      <div class="f-icon">${icons[i]}</div>
+      <div class="f-temp">${temps[i]}°F</div>
+    </div>
+  `).join('');
+}
+
+function wmoToEmoji(code) {
+  if (code === 0) return '☀️';
+  if (code <= 2) return '⛅';
+  if (code <= 3) return '☁️';
+  if (code <= 49) return '🌫️';
+  if (code <= 59) return '🌦️';
+  if (code <= 69) return '🌧️';
+  if (code <= 79) return '❄️';
+  if (code <= 82) return '🌧️';
+  if (code <= 86) return '🌨️';
+  if (code <= 99) return '⛈️';
+  return '🌤️';
+}
+
+function wmoToDesc(code) {
+  if (code === 0) return 'Clear Sky';
+  if (code <= 2) return 'Partly Cloudy';
+  if (code <= 3) return 'Overcast';
+  if (code <= 49) return 'Foggy';
+  if (code <= 59) return 'Light Drizzle';
+  if (code <= 69) return 'Rainy';
+  if (code <= 79) return 'Snowy';
+  if (code <= 82) return 'Rain Showers';
+  if (code <= 86) return 'Snow Showers';
+  if (code <= 99) return 'Thunderstorms';
+  return 'Mixed Conditions';
+}
+
+// ================================================================
+// SOLUNAR CALCULATION
+// ================================================================
+function initSolunar() {
+  const now = new Date();
+  const phases = ['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
+  const dayOfYear = Math.floor((now - new Date(now.getFullYear(),0,0)) / 86400000);
+  const phaseIndex = Math.floor((dayOfYear % 29.5) / (29.5/8)) % 8;
+  const illum = Math.round(Math.abs(Math.sin((dayOfYear / 29.5) * Math.PI)) * 100);
+
+  document.getElementById('moon-phase').textContent = phases[phaseIndex];
+  document.getElementById('moon-illum').textContent = illum + '%';
+
+  // Solunar times (simplified calculation)
+  const major = new Date(now);
+  major.setHours(6 + Math.floor(Math.random() * 4), Math.floor(Math.random() * 60));
+  const minor = new Date(now);
+  minor.setHours(12 + Math.floor(Math.random() * 3), Math.floor(Math.random() * 60));
+
+  document.getElementById('sol-major').textContent = major.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+  document.getElementById('sol-minor').textContent = minor.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+}
+
+// ================================================================
+// SEARCH
+// ================================================================
+function initSearch() {
+  const input = document.getElementById('search-input');
+  const results = document.getElementById('search-results');
+  let searchTimer;
+
+  input.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    const q = input.value.trim();
+    if (q.length < 3) { results.style.display = 'none'; return; }
+    searchTimer = setTimeout(() => doSearch(q), 400);
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { results.style.display = 'none'; input.blur(); }
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#search-box') && !e.target.closest('#search-results')) {
+      results.style.display = 'none';
+    }
+  });
+}
+
+async function doSearch(q) {
+  const results = document.getElementById('search-results');
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&countrycodes=us`);
+    const data = await res.json();
+    if (!data.length) {
+      results.innerHTML = '<div class="sr-item">No results found</div>';
+      results.style.display = 'block';
+      return;
+    }
+    results.innerHTML = data.map(item => `
+      <div class="sr-item" onclick="goToResult(${item.lat},${item.lon},'${item.display_name.replace(/'/g,'`')}')">
+        <i class="fa-solid fa-location-dot"></i>${item.display_name}
+      </div>
+    `).join('');
+    results.style.display = 'block';
+  } catch(e) {
+    results.innerHTML = '<div class="sr-item">Search unavailable</div>';
+    results.style.display = 'block';
+  }
+}
+
+function goToResult(lat, lng, name) {
+  STATE.map.flyTo([parseFloat(lat), parseFloat(lng)], 13, { duration: 1.5 });
+  document.getElementById('search-results').style.display = 'none';
+  document.getElementById('search-input').value = name.split(',')[0];
+  showToast(`📍 Navigating to ${name.split(',')[0]}`);
+}
+
+// ================================================================
+// SETTINGS PANEL
+// ================================================================
+function togglePanel() {
+  STATE.panelCollapsed = !STATE.panelCollapsed;
+  const panel = document.getElementById('settings-panel');
+  const toggle = document.getElementById('panel-toggle');
+  const icon = document.getElementById('toggle-icon');
+
+  panel.classList.toggle('collapsed', STATE.panelCollapsed);
+  toggle.classList.toggle('collapsed', STATE.panelCollapsed);
+
+  const pos = STATE.panelPosition;
+  if (pos === 'right') {
+    icon.className = STATE.panelCollapsed ? 'fa-solid fa-chevron-left' : 'fa-solid fa-chevron-right';
+    toggle.style.right = STATE.panelCollapsed ? '0' : 'var(--panel-width)';
+  } else if (pos === 'left') {
+    icon.className = STATE.panelCollapsed ? 'fa-solid fa-chevron-right' : 'fa-solid fa-chevron-left';
+    toggle.style.left = STATE.panelCollapsed ? '0' : 'var(--panel-width)';
+    toggle.style.right = 'auto';
+  }
+
+  saveSetting('panel_collapsed', STATE.panelCollapsed);
+}
+
+function setPanelPosition(pos) {
+  const panel = document.getElementById('settings-panel');
+  const toggle = document.getElementById('panel-toggle');
+
+  // Remove all position classes
+  ['position-left','position-top','position-bottom'].forEach(c => {
+    panel.classList.remove(c);
+    toggle.classList.remove(c);
+  });
+
+  STATE.panelPosition = pos;
+  STATE.panelCollapsed = false;
+  panel.classList.remove('collapsed');
+  toggle.classList.remove('collapsed');
+
+  // Remove positional inline styles
+  panel.style.cssText = '';
+  toggle.style.cssText = '';
+
+  if (pos === 'left') {
+    panel.classList.add('position-left');
+    toggle.classList.add('position-left');
+    toggle.style.left = 'var(--panel-width)';
+    toggle.style.right = 'auto';
+    toggle.style.top = '50%';
+    toggle.style.transform = 'translateY(-50%)';
+    document.getElementById('toggle-icon').className = 'fa-solid fa-chevron-left';
+  } else if (pos === 'top') {
+    panel.classList.add('position-top');
+    toggle.style.top = '4px';
+    toggle.style.right = '4px';
+    toggle.style.transform = 'none';
+    toggle.style.borderRadius = '8px';
+    toggle.style.height = '28px';
+    toggle.style.width = '28px';
+    document.getElementById('toggle-icon').className = 'fa-solid fa-chevron-up';
+  } else if (pos === 'bottom') {
+    panel.classList.add('position-bottom');
+    toggle.style.bottom = '4px';
+    toggle.style.top = 'auto';
+    toggle.style.right = '4px';
+    toggle.style.transform = 'none';
+    toggle.style.borderRadius = '8px';
+    toggle.style.height = '28px';
+    toggle.style.width = '28px';
+    document.getElementById('toggle-icon').className = 'fa-solid fa-chevron-down';
+  } else {
+    // right (default)
+    toggle.style.right = 'var(--panel-width)';
+    toggle.style.top = '50%';
+    toggle.style.transform = 'translateY(-50%)';
+    document.getElementById('toggle-icon').className = 'fa-solid fa-chevron-right';
+  }
+
+  document.querySelectorAll('.pos-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.pos-btn[onclick*="${pos}"]`)?.classList.add('active');
+
+  saveSetting('panel_position', pos);
+  showToast(`↔️ Panel moved to ${pos}`);
+}
+
+// ================================================================
+// THEME / DARK MODE
+// ================================================================
+function setTheme(theme) {
+  const body = document.body;
+  ['theme-blue','theme-green','theme-red','theme-purple','theme-orange'].forEach(c => body.classList.remove(c));
+  body.classList.add('theme-' + theme);
+  STATE.theme = theme;
+
+  document.querySelectorAll('.theme-dot').forEach(d => {
+    d.classList.remove('active');
+    d.querySelector('i')?.setAttribute('style', 'display:none');
+  });
+  const active = document.querySelector(`.theme-dot[data-theme="${theme}"]`);
+  if (active) {
+    active.classList.add('active');
+    let ico = active.querySelector('i');
+    if (!ico) { ico = document.createElement('i'); ico.className = 'fa-solid fa-check'; active.appendChild(ico); }
+    ico.style.display = 'block';
+  }
+
+  saveSetting('theme', theme);
+}
+
+function toggleDark(on) {
+  document.body.classList.toggle('dark', on);
+  STATE.darkMode = on;
+  saveSetting('dark_mode', on);
+  showToast(on ? '🌙 Dark mode on' : '☀️ Light mode on');
+}
+
+// ================================================================
+// OTHER SETTINGS
+// ================================================================
+function toggleMinimap(on) {
+  document.getElementById('minimap').style.display = on ? 'block' : 'none';
+  if (on && !STATE.minimapMap) {
+    STATE.minimapMap = L.map('minimap', { 
+      center: STATE.map.getCenter(), zoom: 4, 
+      zoomControl: false, attributionControl: false 
+    });
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(STATE.minimapMap);
+    STATE.map.on('move', () => STATE.minimapMap.setView(STATE.map.getCenter()));
+  }
+}
+
+function toggleScale(on) {
+  if (on) {
+    if (!STATE.scaleControl) STATE.scaleControl = L.control.scale({ position:'bottomleft' }).addTo(STATE.map);
+  } else {
+    if (STATE.scaleControl) { STATE.map.removeControl(STATE.scaleControl); STATE.scaleControl = null; }
+  }
+}
+
+function toggleCoords(on) {
+  document.getElementById('coords-bar').style.display = on ? 'block' : 'none';
+}
+
+function toggleIdentify(on) {
+  STATE.identifyEnabled = on;
+}
+
+function toggle3D(on) {
+  showToast(on ? '🏔️ 3D Terrain enabled (requires elevation data)' : '🏔️ 3D Terrain disabled');
+}
+
+function setUnits(val) {
+  STATE.units = val;
+  saveSetting('units', val);
+  showToast(`📏 Units: ${val}`);
+}
+
+function setCoordFormat(val) {
+  STATE.coordFormat = val;
+  saveSetting('coord_format', val);
+}
+
+// ================================================================
+// TABS
+// ================================================================
+function initEventListeners() {
+  // Panel tabs
+  document.querySelectorAll('.panel-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab)?.classList.add('active');
+    });
+  });
+
+  // Header buttons
+  document.getElementById('btn-gps').addEventListener('click', toggleGPS);
+  document.getElementById('btn-measure').addEventListener('click', toggleMeasure);
+  document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
+  document.getElementById('btn-share').addEventListener('click', shareMap);
+  document.getElementById('btn-settings-gear').addEventListener('click', () => {
+    if (STATE.panelCollapsed) togglePanel();
+    // Switch to display tab
+    document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelector('[data-tab="display"]')?.classList.add('active');
+    document.getElementById('tab-display')?.classList.add('active');
+  });
+
+  // Panel toggle
+  document.getElementById('panel-toggle').addEventListener('click', togglePanel);
+
+  // FABs
+  document.getElementById('fab-pin').addEventListener('click', openPinModal);
+  document.getElementById('fab-zoom-in').addEventListener('click', () => STATE.map.zoomIn());
+  document.getElementById('fab-zoom-out').addEventListener('click', () => STATE.map.zoomOut());
+  document.getElementById('fab-legend').addEventListener('click', toggleLegend);
+
+  // Modal close on overlay click
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+    if (e.key === 'f' && e.ctrlKey) e.preventDefault(); // prevent browser find
+    if (e.key === '+' || e.key === '=') STATE.map.zoomIn();
+    if (e.key === '-') STATE.map.zoomOut();
+  });
+}
+
+function toggleLegend() {
+  const legend = document.getElementById('map-legend');
+  legend.style.display = legend.style.display === 'block' ? 'none' : 'block';
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen?.();
+    document.getElementById('btn-fullscreen').innerHTML = '<i class="fa-solid fa-compress"></i>';
+  } else {
+    document.exitFullscreen?.();
+    document.getElementById('btn-fullscreen').innerHTML = '<i class="fa-solid fa-expand"></i>';
+  }
+}
+
+function shareMap() {
+  const center = STATE.map.getCenter();
+  const zoom = STATE.map.getZoom();
+  const url = `${window.location.origin}${window.location.pathname}?lat=${center.lat.toFixed(5)}&lng=${center.lng.toFixed(5)}&z=${zoom}`;
+  
+  if (navigator.share) {
+    navigator.share({ title: 'SportsmanMap Pro', url });
+  } else {
+    navigator.clipboard?.writeText(url).then(() => showToast('🔗 Map link copied!'));
+  }
+}
+
+// ================================================================
+// COOKIES & SETTINGS PERSISTENCE
+// ================================================================
+function setCookie(name, value, days) {
+  const d = new Date();
+  d.setTime(d.getTime() + (days * 86400000));
+  document.cookie = `${name}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/;SameSite=Lax`;
+}
+
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
+function saveSetting(key, value) {
+  setCookie('sm_' + key, String(value), 365);
+}
+
+function loadSettings() {
+  const theme = getCookie('sm_theme') || 'blue';
+  setTheme(theme);
+
+  const dark = getCookie('sm_dark_mode') === 'true';
+  if (dark) { document.body.classList.add('dark'); document.getElementById('dark-toggle').checked = true; STATE.darkMode = true; }
+
+  const bm = getCookie('sm_basemap');
+  if (bm && BASEMAPS[bm]) STATE.activeBasemap = bm;
+
+  const units = getCookie('sm_units') || 'imperial';
+  STATE.units = units;
+  document.getElementById('unit-select').value = units;
+
+  const cf = getCookie('sm_coord_format') || 'dd';
+  STATE.coordFormat = cf;
+  document.getElementById('coord-format').value = cf;
+
+  const pos = getCookie('sm_panel_position') || 'right';
+  if (pos !== 'right') setTimeout(() => setPanelPosition(pos), 100);
+
+  // Check URL params
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('lat') && params.get('lng')) {
+    CONFIG.defaultCenter = [parseFloat(params.get('lat')), parseFloat(params.get('lng'))];
+    CONFIG.defaultZoom = parseInt(params.get('z')) || 13;
+  }
+}
+
+// ================================================================
+// TOAST NOTIFICATIONS
+// ================================================================
+function showToast(msg) {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3100);
+}
+
+// ================================================================
+// EXPOSE GLOBALS (for inline onclick handlers)
+// ================================================================
+window.toggleLayer = toggleLayer;
+window.setTheme = setTheme;
+window.toggleDark = toggleDark;
+window.setPanelPosition = setPanelPosition;
+window.setLayerOpacity = setLayerOpacity;
+window.openPinModal = openPinModal;
+window.openPinModalAt = openPinModalAt;
+window.closeModal = closeModal;
+window.selectEmoji = selectEmoji;
+window.savePin = savePin;
+window.deletePin = deletePin;
+window.flyToPin = flyToPin;
+window.exportPins = exportPins;
+window.copyCoords = copyCoords;
+window.toggleMinimap = toggleMinimap;
+window.toggleScale = toggleScale;
+window.toggleCoords = toggleCoords;
+window.toggleIdentify = toggleIdentify;
+window.toggle3D = toggle3D;
+window.setUnits = setUnits;
+window.setCoordFormat = setCoordFormat;
+window.toggleGpsDisplay = toggleGpsDisplay;
+</script>
+
+</body>
+</html>
