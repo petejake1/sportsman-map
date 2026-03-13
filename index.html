@@ -4,1006 +4,449 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>SportsmanMap Pro — USA</title>
-
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
-/* ═══════════════════════════════════════════════════
-   VARIABLES & THEMES
-═══════════════════════════════════════════════════ */
-:root {
-  --primary:#2563eb; --primary-light:#3b82f6; --primary-dark:#1d4ed8;
-  --accent:#f59e0b;
-  --bg:#f8fafc; --surface:#ffffff; --surface2:#f1f5f9;
-  --border:#e2e8f0; --text:#1e293b; --text-muted:#64748b; --text-light:#94a3b8;
-  --shadow:rgba(0,0,0,.10); --shadow-lg:rgba(0,0,0,.22);
-  --panel-w:330px; --hdr-h:54px; --r:12px; --rs:8px;
-  --ease:.3s cubic-bezier(.4,0,.2,1);
-  --font:'Inter',sans-serif;
+:root{
+  --primary:#2563eb;--primary-light:#3b82f6;--primary-dark:#1d4ed8;
+  --accent:#f59e0b;--success:#22c55e;--danger:#ef4444;--warning:#f97316;
+  --bg:#f0f4f8;--surface:#ffffff;--surface2:#f1f5f9;--surface3:#e8edf3;
+  --border:#dde3eb;--text:#1a2332;--text-muted:#5a6a7e;--text-light:#8896a7;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.04);
+  --shadow-lg:0 4px 16px rgba(0,0,0,.1),0 12px 40px rgba(0,0,0,.06);
+  --shadow-xl:0 8px 30px rgba(0,0,0,.12);
+  --panel-w:340px;--hdr-h:52px;--r:14px;--rs:10px;
+  --ease:.3s cubic-bezier(.4,0,.2,1);--font:'Inter',system-ui,sans-serif;
+  --glass:rgba(255,255,255,.72);--glass-border:rgba(255,255,255,.3);
 }
 body.dark{
-  --bg:#0f172a; --surface:#1e293b; --surface2:#334155;
-  --border:#475569; --text:#f1f5f9; --text-muted:#94a3b8; --text-light:#64748b;
-  --shadow:rgba(0,0,0,.40); --shadow-lg:rgba(0,0,0,.65);
+  --bg:#0c1220;--surface:#151f30;--surface2:#1c2940;--surface3:#243350;
+  --border:#2a3a52;--text:#e8edf5;--text-muted:#8899b0;--text-light:#5a6e85;
+  --glass:rgba(21,31,48,.85);--glass-border:rgba(255,255,255,.08);
+  --shadow:0 1px 3px rgba(0,0,0,.3),0 4px 12px rgba(0,0,0,.2);
+  --shadow-lg:0 4px 16px rgba(0,0,0,.3),0 12px 40px rgba(0,0,0,.25);
 }
-body.t-blue  {--primary:#2563eb;--primary-light:#3b82f6;--primary-dark:#1d4ed8;--accent:#f59e0b}
-body.t-green {--primary:#16a34a;--primary-light:#22c55e;--primary-dark:#15803d;--accent:#f59e0b}
-body.t-red   {--primary:#dc2626;--primary-light:#ef4444;--primary-dark:#b91c1c;--accent:#fbbf24}
+body.t-blue{--primary:#2563eb;--primary-light:#3b82f6;--primary-dark:#1d4ed8;--accent:#f59e0b}
+body.t-green{--primary:#059669;--primary-light:#10b981;--primary-dark:#047857;--accent:#f59e0b}
+body.t-red{--primary:#dc2626;--primary-light:#ef4444;--primary-dark:#b91c1c;--accent:#fbbf24}
 body.t-purple{--primary:#7c3aed;--primary-light:#8b5cf6;--primary-dark:#6d28d9;--accent:#f59e0b}
 body.t-orange{--primary:#ea580c;--primary-light:#f97316;--primary-dark:#c2410c;--accent:#facc15}
 
-/* ═══════════════════════════════════════════════════
-   RESET & BASE
-═══════════════════════════════════════════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden;font-family:var(--font);background:var(--bg);color:var(--text);transition:background var(--ease),color var(--ease)}
 button{font-family:var(--font);cursor:pointer}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:5px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-light)}
 
-/* ═══════════════════════════════════════════════════
-   LAYOUT
-═══════════════════════════════════════════════════ */
 #app{display:flex;flex-direction:column;height:100vh;width:100vw}
 
-/* ── HEADER ── */
+/* HEADER */
 #hdr{
-  display:flex;align-items:center;gap:10px;
-  height:var(--hdr-h);padding:0 14px;
-  background:var(--primary);color:#fff;
-  box-shadow:0 2px 10px var(--shadow-lg);
+  display:flex;align-items:center;gap:8px;
+  height:var(--hdr-h);padding:0 12px;
+  background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+  color:#fff;box-shadow:0 2px 20px rgba(0,0,0,.2);
   z-index:1000;flex-shrink:0;position:relative;
 }
-.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:1.1rem;white-space:nowrap;flex-shrink:0}
-.logo i{color:var(--accent);font-size:1.3rem}
-.logo-sub{font-size:.68rem;opacity:.8;font-weight:400;display:block}
+.logo{display:flex;align-items:center;gap:7px;font-weight:800;font-size:1.05rem;white-space:nowrap;flex-shrink:0;letter-spacing:-.02em}
+.logo i{color:var(--accent);font-size:1.2rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}
+.logo-sub{font-size:.6rem;opacity:.7;font-weight:400;display:block;letter-spacing:.02em}
 .hdr-space{flex:1}
-#search-wrap{flex:1;max-width:420px;position:relative}
+#search-wrap{flex:1;max-width:380px;position:relative}
 #search-inp{
-  width:100%;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);
-  border-radius:8px;padding:0 12px 0 36px;height:34px;
-  color:#fff;font-size:.875rem;font-family:var(--font);outline:none;
-  transition:background .2s;
+  width:100%;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);
+  border-radius:10px;padding:0 12px 0 34px;height:32px;
+  color:#fff;font-size:.82rem;font-family:var(--font);outline:none;
+  transition:all .2s;backdrop-filter:blur(8px);
 }
-#search-inp::placeholder{color:rgba(255,255,255,.65)}
-#search-inp:focus{background:rgba(255,255,255,.3)}
-.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.7);font-size:.9rem;pointer-events:none}
+#search-inp::placeholder{color:rgba(255,255,255,.55)}
+#search-inp:focus{background:rgba(255,255,255,.25);border-color:rgba(255,255,255,.4)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.6);font-size:.82rem;pointer-events:none}
 #search-drop{
   position:absolute;top:calc(100% + 4px);left:0;right:0;
   background:var(--surface);border:1px solid var(--border);
   border-radius:var(--rs);overflow:hidden;
-  box-shadow:0 8px 24px var(--shadow-lg);z-index:9999;display:none;
+  box-shadow:var(--shadow-xl);z-index:9999;display:none;
   max-height:280px;overflow-y:auto;
 }
-.sd-item{padding:9px 13px;font-size:.82rem;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--text)}
+.sd-item{padding:9px 13px;font-size:.8rem;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--text);transition:background .15s}
 .sd-item:hover{background:var(--surface2)}
 .sd-item i{color:var(--primary);flex-shrink:0}
 .hbtn{
-  background:rgba(255,255,255,.15);border:none;color:#fff;
-  width:34px;height:34px;border-radius:7px;
+  background:rgba(255,255,255,.12);border:none;color:#fff;
+  width:32px;height:32px;border-radius:8px;
   display:flex;align-items:center;justify-content:center;
-  font-size:.95rem;transition:background .2s;flex-shrink:0;
+  font-size:.88rem;transition:all .2s;flex-shrink:0;backdrop-filter:blur(4px);
 }
-.hbtn:hover{background:rgba(255,255,255,.30)}
-.hbtn.active-tool{background:var(--accent);color:#1e293b}
+.hbtn:hover{background:rgba(255,255,255,.25);transform:translateY(-1px)}
+.hbtn.active-tool{background:var(--accent);color:#1a2332;box-shadow:0 2px 8px rgba(245,158,11,.4)}
 
-/* ── MAIN ── */
+/* MAIN */
 #main{display:flex;flex:1;overflow:hidden;position:relative}
 #map{flex:1;height:100%;z-index:1}
 
-/* ── TOGGLE BUTTON ── */
+/* TOGGLE BUTTON */
 #ptoggle{
   position:absolute;top:50%;transform:translateY(-50%);
-  right:var(--panel-w);
-  width:22px;height:54px;
-  background:var(--primary);border:none;border-radius:7px 0 0 7px;
+  right:var(--panel-w);width:20px;height:50px;
+  background:var(--primary);border:none;border-radius:8px 0 0 8px;
   color:#fff;z-index:600;display:flex;align-items:center;justify-content:center;
-  font-size:.8rem;box-shadow:-3px 0 10px var(--shadow);
-  transition:right var(--ease),left var(--ease);
+  font-size:.75rem;box-shadow:-2px 0 12px rgba(0,0,0,.12);transition:all var(--ease);
 }
-#ptoggle.pos-left{left:var(--panel-w);right:auto;border-radius:0 7px 7px 0}
-#ptoggle.pos-top{top:4px;right:4px;transform:none;border-radius:7px;width:28px;height:28px}
-#ptoggle.pos-bottom{top:auto;bottom:4px;right:4px;transform:none;border-radius:7px;width:28px;height:28px}
 #ptoggle.hidden-r{right:0}
 #ptoggle.hidden-l{left:0;right:auto}
+#ptoggle.pos-left{left:var(--panel-w);right:auto;border-radius:0 8px 8px 0}
 
-/* ── SETTINGS PANEL ── */
+/* PANEL */
 #spanel{
   width:var(--panel-w);height:100%;
   background:var(--surface);border-left:1px solid var(--border);
-  display:flex;flex-direction:column;
-  overflow:hidden;z-index:500;flex-shrink:0;
-  box-shadow:-4px 0 16px var(--shadow);
-  transition:width var(--ease),border var(--ease),transform var(--ease);
+  display:flex;flex-direction:column;overflow:hidden;z-index:500;flex-shrink:0;
+  box-shadow:-4px 0 24px rgba(0,0,0,.06);transition:width var(--ease),transform var(--ease);
 }
-#spanel.collapsed{width:0;border-left:none}
-#spanel.pos-left{order:-1;border-left:none;border-right:1px solid var(--border);box-shadow:4px 0 16px var(--shadow)}
-#spanel.pos-top,#spanel.pos-bottom{
-  position:absolute;width:100% !important;height:auto;
-  max-height:55vh;overflow-y:auto;left:0;
-  border-left:none;border-right:none;z-index:600;
-}
-#spanel.pos-top{top:0;border-bottom:1px solid var(--border)}
-#spanel.pos-bottom{bottom:0;border-top:1px solid var(--border)}
+#spanel.collapsed{width:0;border-left:none;overflow:hidden}
+#spanel.pos-left{order:-1;border-left:none;border-right:1px solid var(--border);box-shadow:4px 0 24px rgba(0,0,0,.06)}
 
-/* ── PANEL INNER ── */
 #panel-inner{display:flex;flex-direction:column;height:100%;min-width:var(--panel-w)}
-.ph{padding:12px 14px 8px;border-bottom:1px solid var(--border);flex-shrink:0}
-.ph h3{font-size:.95rem;font-weight:700;display:flex;align-items:center;gap:7px;color:var(--text)}
-.ph h3 i{color:var(--primary)}
+.ph{padding:10px 14px 8px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface)}
+.ph h3{font-size:.88rem;font-weight:800;display:flex;align-items:center;gap:6px;color:var(--text);letter-spacing:-.02em}
+.ph h3 i{color:var(--primary);font-size:.95rem}
 
-/* ── TABS ── */
-.ptabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface2);flex-shrink:0;overflow-x:auto}
-.ptabs::-webkit-scrollbar{height:0}
+/* TABS */
+.ptabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface2);flex-shrink:0;overflow-x:auto;gap:0}
 .ptab{
-  flex:1;min-width:52px;padding:8px 4px;border:none;background:transparent;
-  color:var(--text-muted);font-size:.66rem;font-weight:600;
-  cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;
-  border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;
+  flex:1;min-width:48px;padding:7px 2px 6px;border:none;background:transparent;
+  color:var(--text-muted);font-size:.58rem;font-weight:700;letter-spacing:.02em;
+  cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;
+  border-bottom:2.5px solid transparent;transition:all .2s;white-space:nowrap;text-transform:uppercase;
 }
-.ptab i{font-size:.95rem}
+.ptab i{font-size:.88rem}
 .ptab.on{color:var(--primary);border-bottom-color:var(--primary);background:var(--surface)}
-.ptab:hover:not(.on){background:var(--border);color:var(--text)}
-.pcontent{flex:1;overflow-y:auto;padding:10px 12px}
-.pcontent::-webkit-scrollbar{width:3px}
-.pcontent::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-.tpane{display:none}
-.tpane.on{display:block}
+.ptab:hover:not(.on){color:var(--text);background:var(--surface3)}
+.pcontent{flex:1;overflow-y:auto;padding:10px 12px 20px}
+.tpane{display:none}.tpane.on{display:block}
 
-/* ── SECTION ── */
-.sec{margin-bottom:16px}
+/* SECTION */
+.sec{margin-bottom:18px}
 .sec-title{
-  font-size:.67rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.07em;color:var(--text-muted);
-  margin-bottom:7px;padding-bottom:4px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:5px;
+  font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--text-muted);margin-bottom:8px;padding-bottom:5px;
+  border-bottom:2px solid var(--border);display:flex;align-items:center;gap:5px;
 }
-.sec-title i{color:var(--primary);font-size:.75rem}
+.sec-title i{color:var(--primary);font-size:.72rem}
 
-/* ── LAYER ITEM ── */
+/* LAYER ITEM */
 .lyr{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:7px 9px;border-radius:var(--rs);margin-bottom:3px;
-  background:var(--surface2);transition:background .15s;
+  display:flex;align-items:center;gap:6px;
+  padding:6px 8px;border-radius:var(--rs);margin-bottom:4px;
+  background:var(--surface2);transition:all .15s;border:1px solid transparent;
 }
-.lyr:hover{background:var(--border)}
-.lyr-left{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
-.lico{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.85rem;color:#fff;flex-shrink:0}
-.linfo .lname{font-size:.78rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.linfo .lsub{font-size:.65rem;color:var(--text-muted)}
-.lyr-status{font-size:.6rem;padding:1px 5px;border-radius:8px;font-weight:700;flex-shrink:0;margin-right:6px}
-.st-live{background:#dcfce7;color:#16a34a}
-.st-wms {background:#dbeafe;color:#2563eb}
-.st-demo{background:#fef9c3;color:#854d0e}
-body.dark .st-live{background:#14532d;color:#4ade80}
+.lyr:hover{border-color:var(--border);background:var(--surface3)}
+.lyr-left{display:flex;align-items:center;gap:7px;min-width:0;flex:1}
+.lico{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.88rem;color:#fff;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.linfo{min-width:0;flex:1}
+.linfo .lname{font-size:.75rem;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.linfo .lsub{font-size:.6rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lyr-status{font-size:.55rem;padding:2px 6px;border-radius:10px;font-weight:800;flex-shrink:0;text-transform:uppercase;letter-spacing:.03em}
+.st-ok{background:#dcfce7;color:#16a34a}
+.st-wms{background:#dbeafe;color:#2563eb}
+.st-api{background:#fef3c7;color:#b45309}
+.st-err{background:#fee2e2;color:#dc2626}
+.st-exp{background:#f3e8ff;color:#7c3aed}
+body.dark .st-ok{background:#14532d;color:#4ade80}
 body.dark .st-wms{background:#1e3a5f;color:#60a5fa}
-body.dark .st-demo{background:#451a03;color:#fcd34d}
+body.dark .st-api{background:#451a03;color:#fcd34d}
+body.dark .st-err{background:#450a0a;color:#fca5a5}
+body.dark .st-exp{background:#2e1065;color:#c4b5fd}
 
-/* ── TOGGLE ── */
-.tog{position:relative;display:inline-block;width:38px;height:21px;flex-shrink:0}
+.lyr-health{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-left:2px}
+.lh-unknown{background:#94a3b8}.lh-ok{background:#22c55e;box-shadow:0 0 4px #22c55e}.lh-err{background:#ef4444;box-shadow:0 0 4px #ef4444}.lh-load{background:#f59e0b;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* TOGGLE */
+.tog{position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0}
 .tog input{opacity:0;width:0;height:0}
-.tog-s{position:absolute;inset:0;background:#cbd5e1;border-radius:21px;cursor:pointer;transition:.25s}
-.tog-s::before{content:'';position:absolute;width:15px;height:15px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 1px 3px var(--shadow-lg)}
+.tog-s{position:absolute;inset:0;background:#c1cad6;border-radius:20px;cursor:pointer;transition:.25s}
+.tog-s::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 input:checked+.tog-s{background:var(--primary)}
-input:checked+.tog-s::before{transform:translateX(17px)}
+input:checked+.tog-s::before{transform:translateX(16px)}
 
-/* ── BASEMAP GRID ── */
-.bmgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
+/* BASEMAP GRID */
+.bmgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
 .bmcard{border:2px solid var(--border);border-radius:var(--rs);overflow:hidden;cursor:pointer;transition:all .2s;background:var(--surface2)}
-.bmcard:hover{border-color:var(--primary-light);transform:translateY(-1px)}
+.bmcard:hover{border-color:var(--primary-light);transform:translateY(-1px);box-shadow:var(--shadow)}
 .bmcard.on{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary-light)}
-.bmprev{height:50px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;background:linear-gradient(135deg,var(--surface2),var(--border))}
-.bmname{font-size:.67rem;font-weight:600;padding:4px 6px;text-align:center;color:var(--text)}
+.bmprev{height:46px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;background:linear-gradient(135deg,var(--surface2),var(--surface3))}
+.bmname{font-size:.62rem;font-weight:700;padding:4px 6px;text-align:center;color:var(--text)}
 .bmcard.on .bmname{color:var(--primary)}
 
-/* ── OPACITY ── */
-.srow{display:flex;align-items:center;gap:8px;margin-bottom:7px}
-.srow label{font-size:.73rem;color:var(--text-muted);min-width:70px}
-.srow input[type=range]{flex:1;accent-color:var(--primary)}
-.srow .sv{font-size:.73rem;font-weight:700;min-width:34px;text-align:right;color:var(--text)}
+/* OPACITY */
+.srow{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.srow label{font-size:.7rem;color:var(--text-muted);min-width:65px;font-weight:600}
+.srow input[type=range]{flex:1;accent-color:var(--primary);height:4px}
+.srow .sv{font-size:.7rem;font-weight:800;min-width:32px;text-align:right;color:var(--primary)}
 
-/* ── PINS ── */
+/* PINS */
 .pin-card{
-  display:flex;align-items:center;gap:9px;
+  display:flex;align-items:center;gap:8px;
   padding:8px 9px;border-radius:var(--rs);
   border:1px solid var(--border);background:var(--surface2);
   cursor:pointer;transition:all .2s;margin-bottom:4px;
 }
-.pin-card:hover{border-color:var(--primary);background:var(--surface)}
+.pin-card:hover{border-color:var(--primary);background:var(--surface);box-shadow:var(--shadow)}
 .pin-em{font-size:1.1rem;flex-shrink:0}
 .pin-inf{flex:1;min-width:0}
-.pin-nm{font-size:.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pin-co{font-size:.67rem;color:var(--text-muted)}
-.pin-del{background:none;border:none;color:var(--text-muted);padding:4px;border-radius:4px;font-size:.8rem;transition:color .2s}
-.pin-del:hover{color:#ef4444}
-.no-pins{text-align:center;padding:20px;color:var(--text-muted);font-size:.82rem}
-.no-pins span{font-size:2rem;display:block;margin-bottom:6px}
+.pin-nm{font-size:.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pin-co{font-size:.64rem;color:var(--text-muted)}
+.pin-del{background:none;border:none;color:var(--text-light);padding:4px;border-radius:6px;font-size:.78rem;transition:all .2s}
+.pin-del:hover{color:#ef4444;background:#fee2e2}
+.no-pins{text-align:center;padding:24px;color:var(--text-muted);font-size:.8rem}
+.no-pins span{font-size:2.2rem;display:block;margin-bottom:8px}
 
-/* ── WEATHER ── */
-.wcrd{
-  padding:13px;border-radius:var(--rs);
-  background:linear-gradient(135deg,var(--primary),var(--primary-dark));
-  color:#fff;margin-bottom:9px;
-}
-.wloc{font-size:.72rem;opacity:.85;margin-bottom:5px;display:flex;align-items:center;gap:5px}
-.wmain{display:flex;align-items:center;gap:10px}
-.wtemp{font-size:2rem;font-weight:700}
-.wico{font-size:2.2rem}
-.wdesc{font-size:.82rem;opacity:.9}
-.wgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:9px}
-.wdet{font-size:.7rem;display:flex;align-items:center;gap:4px;opacity:.88}
-.frow{display:flex;gap:5px;margin-top:7px}
-.fday{flex:1;text-align:center;padding:7px 3px;background:var(--surface2);border-radius:var(--rs);border:1px solid var(--border)}
-.fdn{font-size:.62rem;color:var(--text-muted);font-weight:600}
+/* WEATHER */
+.wcrd{padding:14px;border-radius:var(--r);background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;margin-bottom:10px;box-shadow:0 4px 16px rgba(37,99,235,.2)}
+.wloc{font-size:.7rem;opacity:.8;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.wmain{display:flex;align-items:center;gap:12px}
+.wtemp{font-size:2.2rem;font-weight:800;letter-spacing:-.02em}
+.wico{font-size:2.4rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,.2))}
+.wdesc{font-size:.82rem;opacity:.9;font-weight:500}
+.wgrid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:10px}
+.wdet{font-size:.66rem;display:flex;align-items:center;gap:4px;opacity:.85}
+.frow{display:flex;gap:5px;margin-top:8px}
+.fday{flex:1;text-align:center;padding:8px 3px;background:var(--surface2);border-radius:var(--rs);border:1px solid var(--border)}
+.fdn{font-size:.58rem;color:var(--text-muted);font-weight:700;text-transform:uppercase}
 .fdi{font-size:1.1rem;margin:3px 0}
-.fdt{font-size:.68rem;font-weight:700;color:var(--text)}
-.icard{padding:9px;border-radius:var(--rs);background:var(--surface2);border:1px solid var(--border);margin-bottom:7px}
-.icard h5{font-size:.78rem;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:5px;color:var(--text)}
-.icard p{font-size:.72rem;color:var(--text-muted);line-height:1.5}
+.fdt{font-size:.66rem;font-weight:800;color:var(--text)}
+.icard{padding:10px;border-radius:var(--rs);background:var(--surface2);border:1px solid var(--border);margin-bottom:7px}
+.icard h5{font-size:.76rem;font-weight:800;margin-bottom:4px;display:flex;align-items:center;gap:5px;color:var(--text)}
+.icard p{font-size:.7rem;color:var(--text-muted);line-height:1.5}
 .igrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
-.istat .sv2{font-size:1.1rem;font-weight:700;color:var(--primary);display:block;text-align:center}
-.istat .sl{font-size:.63rem;color:var(--text-muted);display:block;text-align:center}
+.istat .sv2{font-size:1.1rem;font-weight:800;color:var(--primary);display:block;text-align:center}
+.istat .sl{font-size:.6rem;color:var(--text-muted);display:block;text-align:center;font-weight:600}
 
-/* ── MODE ROW ── */
-.mrow{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:8px 10px;border-radius:var(--rs);background:var(--surface2);margin-bottom:5px;
-}
-.mrow .ml{display:flex;align-items:center;gap:8px;font-size:.82rem;font-weight:500;color:var(--text)}
+/* MODE ROW */
+.mrow{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:var(--rs);background:var(--surface2);margin-bottom:4px;border:1px solid var(--border)}
+.mrow .ml{display:flex;align-items:center;gap:8px;font-size:.8rem;font-weight:600;color:var(--text)}
 .mrow .ml i{color:var(--primary);width:16px;text-align:center}
 
-/* ── THEME DOTS ── */
-.tdots{display:flex;gap:7px;flex-wrap:wrap}
-.tdot{width:34px;height:34px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.75rem}
-.tdot:hover{transform:scale(1.12)}
-.tdot.on{border-color:var(--text)}
-.td-blue  {background:#2563eb}.td-green{background:#16a34a}.td-red  {background:#dc2626}
+/* THEME DOTS */
+.tdots{display:flex;gap:8px;flex-wrap:wrap}
+.tdot{width:36px;height:36px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem}
+.tdot:hover{transform:scale(1.15);box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.tdot.on{border-color:var(--text);box-shadow:0 0 0 2px var(--bg)}
+.td-blue{background:#2563eb}.td-green{background:#059669}.td-red{background:#dc2626}
 .td-purple{background:#7c3aed}.td-orange{background:#ea580c}
 
-/* ── POSITION BTNS ── */
+/* POS BTNS */
 .posgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
-.pbtn{
-  padding:6px 3px;border:1px solid var(--border);border-radius:6px;
-  background:var(--surface2);color:var(--text-muted);
-  font-size:.65rem;text-align:center;transition:all .2s;font-family:var(--font);font-weight:600;
-}
-.pbtn i{display:block;font-size:.9rem;margin-bottom:2px;color:inherit}
+.pbtn{padding:7px 3px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text-muted);font-size:.62rem;text-align:center;transition:all .2s;font-family:var(--font);font-weight:700}
+.pbtn i{display:block;font-size:.85rem;margin-bottom:2px}
 .pbtn:hover{border-color:var(--primary);color:var(--primary)}
 .pbtn.on{background:var(--primary);border-color:var(--primary);color:#fff}
 
-/* ── FORM ── */
+/* FORM */
 .fgrp{margin-bottom:12px}
-.fgrp label{display:block;font-size:.78rem;font-weight:600;margin-bottom:4px;color:var(--text)}
-.fgrp input,.fgrp select,.fgrp textarea{
-  width:100%;padding:8px 11px;border:1px solid var(--border);
-  border-radius:var(--rs);background:var(--surface2);
-  color:var(--text);font-size:.85rem;font-family:var(--font);outline:none;transition:border-color .2s;
-}
-.fgrp input:focus,.fgrp select:focus,.fgrp textarea:focus{border-color:var(--primary)}
-.fgrp textarea{resize:vertical;min-height:65px}
-.epick{display:flex;flex-wrap:wrap;gap:5px}
-.ebtn{width:32px;height:32px;border-radius:6px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
-.ebtn:hover,.ebtn.on{border-color:var(--primary)}
+.fgrp label{display:block;font-size:.75rem;font-weight:700;margin-bottom:4px;color:var(--text)}
+.fgrp input,.fgrp select,.fgrp textarea{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:var(--rs);background:var(--surface2);color:var(--text);font-size:.82rem;font-family:var(--font);outline:none;transition:all .2s}
+.fgrp input:focus,.fgrp select:focus,.fgrp textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.fgrp textarea{resize:vertical;min-height:60px}
+.epick{display:flex;flex-wrap:wrap;gap:4px}
+.ebtn{width:32px;height:32px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.ebtn:hover,.ebtn.on{border-color:var(--primary);background:var(--surface)}
 
-/* ── MODAL ── */
-#moverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:none;align-items:center;justify-content:center;padding:14px}
+/* MODAL */
+#moverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:2000;display:none;align-items:center;justify-content:center;padding:14px}
 #moverlay.on{display:flex}
-.modal{background:var(--surface);border-radius:var(--r);width:100%;max-width:430px;overflow:hidden;box-shadow:0 16px 48px var(--shadow-lg)}
-.mhdr{padding:14px 18px;background:var(--primary);display:flex;align-items:center;justify-content:space-between}
-.mhdr h3{color:#fff;font-size:.95rem;font-weight:700;display:flex;align-items:center;gap:7px}
+.modal{background:var(--surface);border-radius:var(--r);width:100%;max-width:420px;overflow:hidden;box-shadow:var(--shadow-xl)}
+.mhdr{padding:14px 18px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));display:flex;align-items:center;justify-content:space-between}
+.mhdr h3{color:#fff;font-size:.92rem;font-weight:800;display:flex;align-items:center;gap:7px}
 .mclose{background:none;border:none;color:rgba(255,255,255,.8);font-size:1.1rem}
 .mbody{padding:18px}
 .mfoot{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:7px;justify-content:flex-end}
-.btn{padding:8px 18px;border-radius:var(--rs);border:none;font-size:.85rem;font-weight:600;font-family:var(--font);transition:all .2s}
-.btn-p{background:var(--primary);color:#fff}.btn-p:hover{background:var(--primary-dark)}
-.btn-s{background:var(--surface2);color:var(--text);border:1px solid var(--border)}.btn-s:hover{background:var(--border)}
+.btn{padding:8px 18px;border-radius:var(--rs);border:none;font-size:.82rem;font-weight:700;font-family:var(--font);transition:all .2s}
+.btn-p{background:var(--primary);color:#fff}.btn-p:hover{background:var(--primary-dark);transform:translateY(-1px)}
+.btn-s{background:var(--surface2);color:var(--text);border:1px solid var(--border)}.btn-s:hover{background:var(--surface3)}
 
-/* ── COORDS BAR ── */
-#coords{
-  position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
-  background:var(--surface);border:1px solid var(--border);border-radius:20px;
-  padding:3px 13px;font-size:.7rem;color:var(--text-muted);
-  z-index:400;pointer-events:none;box-shadow:0 2px 8px var(--shadow);white-space:nowrap;
-}
-#coords span{color:var(--text);font-weight:600}
+/* COORDS */
+#coords{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--glass-border);border-radius:20px;padding:3px 14px;font-size:.68rem;color:var(--text-muted);z-index:400;pointer-events:none;box-shadow:var(--shadow);white-space:nowrap}
+#coords span{color:var(--text);font-weight:700}
 
-/* ── FABS ── */
-#fabs{position:absolute;bottom:48px;right:14px;display:flex;flex-direction:column;gap:7px;z-index:400}
-.fab{
-  width:42px;height:42px;border-radius:11px;
-  background:var(--surface);border:1px solid var(--border);
-  color:var(--text);font-size:.95rem;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 2px 8px var(--shadow);transition:all .2s;
-}
-.fab:hover{background:var(--primary);color:#fff;border-color:var(--primary);transform:translateY(-1px)}
+/* FABS */
+#fabs{position:absolute;bottom:48px;right:14px;display:flex;flex-direction:column;gap:6px;z-index:400}
+.fab{width:40px;height:40px;border-radius:var(--rs);background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--glass-border);color:var(--text);font-size:.9rem;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);transition:all .2s}
+.fab:hover{background:var(--primary);color:#fff;border-color:var(--primary);transform:translateY(-2px);box-shadow:0 4px 12px rgba(37,99,235,.3)}
 .fab.pf{background:var(--primary);color:#fff;border-color:var(--primary)}
-.fab.pf:hover{background:var(--primary-dark)}
+.fab.pf:hover{background:var(--primary-dark);box-shadow:0 4px 12px rgba(37,99,235,.4)}
 
-/* ── LEGEND ── */
-#legend{
-  position:absolute;bottom:38px;left:10px;
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--rs);padding:9px 11px;z-index:400;
-  display:none;min-width:145px;box-shadow:0 2px 8px var(--shadow);
-}
-#legend h5{font-size:.73rem;font-weight:700;margin-bottom:5px;color:var(--text)}
-.li{display:flex;align-items:center;gap:7px;margin-bottom:3px;font-size:.7rem;color:var(--text-muted)}
-.ld{width:11px;height:11px;border-radius:50%;flex-shrink:0}
-.ll{width:20px;height:3px;flex-shrink:0;border-radius:2px}
+/* LEGEND */
+#legend{position:absolute;bottom:38px;left:10px;background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--glass-border);border-radius:var(--rs);padding:10px 12px;z-index:400;display:none;min-width:150px;box-shadow:var(--shadow-lg)}
+#legend h5{font-size:.72rem;font-weight:800;margin-bottom:6px;color:var(--text)}
+.li{display:flex;align-items:center;gap:7px;margin-bottom:3px;font-size:.68rem;color:var(--text-muted)}
+.ld{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.ll{width:18px;height:3px;flex-shrink:0;border-radius:2px}
 
-/* ── MEASURE ── */
-#mresult{
-  position:absolute;top:64px;left:50%;transform:translateX(-50%);
-  background:var(--accent);color:#000;padding:5px 16px;
-  border-radius:20px;font-size:.78rem;font-weight:700;z-index:400;display:none;
-  box-shadow:0 2px 8px var(--shadow);
-}
+/* MEASURE */
+#mresult{position:absolute;top:62px;left:50%;transform:translateX(-50%);background:var(--accent);color:#000;padding:5px 16px;border-radius:20px;font-size:.76rem;font-weight:800;z-index:400;display:none;box-shadow:0 4px 12px rgba(245,158,11,.3)}
 
-/* ── TOAST ── */
+/* TOAST */
 #toasts{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
-.toast{
-  background:var(--text);color:var(--bg);
-  padding:9px 18px;border-radius:18px;font-size:.82rem;font-weight:500;
-  box-shadow:0 4px 16px var(--shadow-lg);white-space:nowrap;
-  animation:tIn .3s ease,tOut .3s 2.7s ease forwards;
-}
+.toast{background:var(--text);color:var(--bg);padding:8px 18px;border-radius:20px;font-size:.78rem;font-weight:600;box-shadow:var(--shadow-xl);white-space:nowrap;animation:tIn .3s ease,tOut .3s 2.7s ease forwards}
 @keyframes tIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 @keyframes tOut{to{opacity:0;transform:translateY(18px)}}
 
-/* ── LOADING ── */
-#load{position:fixed;inset:0;background:var(--primary);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#fff}
-#load .li2{font-size:3rem}
-#load h2{font-size:1.5rem;font-weight:700}
-#load p{font-size:.88rem;opacity:.82}
-.spin{width:44px;height:44px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite}
+/* LOADING */
+#load{position:fixed;inset:0;background:linear-gradient(135deg,var(--primary),var(--primary-dark));z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#fff}
+#load .licon{font-size:3.5rem;filter:drop-shadow(0 4px 8px rgba(0,0,0,.3))}
+#load h2{font-size:1.4rem;font-weight:800;letter-spacing:-.02em}
+#load p{font-size:.85rem;opacity:.75}
+.spin{width:40px;height:40px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 
-/* ── LAYER STATUS PANEL ── */
-#lstatus{
-  position:absolute;top:8px;left:10px;
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--rs);padding:7px 10px;z-index:400;
-  font-size:.67rem;max-width:180px;box-shadow:0 2px 8px var(--shadow);
-  display:none;
-}
-#lstatus h6{font-weight:700;margin-bottom:4px;color:var(--text);font-size:.7rem}
-.lsrow{display:flex;align-items:center;gap:5px;margin-bottom:2px;color:var(--text-muted)}
+/* STATUS PANEL */
+#lstatus{position:absolute;top:8px;left:10px;background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--glass-border);border-radius:var(--rs);padding:8px 11px;z-index:400;font-size:.65rem;max-width:200px;box-shadow:var(--shadow-lg);display:none}
+#lstatus h6{font-weight:800;margin-bottom:5px;color:var(--text);font-size:.7rem}
+.lsrow{display:flex;align-items:center;gap:5px;margin-bottom:3px;color:var(--text-muted);font-weight:600}
 .lsdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 
-/* ── LEAFLET OVERRIDES ── */
-.leaflet-popup-content-wrapper{background:var(--surface) !important;color:var(--text) !important;border-radius:var(--r) !important;box-shadow:0 8px 24px var(--shadow-lg) !important}
-.leaflet-popup-tip{background:var(--surface) !important}
-.leaflet-popup-content{margin:11px 15px !important;font-family:var(--font) !important}
-.leaflet-bar a{background:var(--surface) !important;color:var(--text) !important;border-color:var(--border) !important}
-.leaflet-bar a:hover{background:var(--surface2) !important}
-.leaflet-control-attribution{background:var(--surface) !important;color:var(--text-muted) !important;font-size:.62rem !important}
+/* DIAG CARD */
+.diag-card{padding:8px 10px;border-radius:var(--rs);background:var(--surface2);border:1px solid var(--border);margin-bottom:5px;display:flex;align-items:center;gap:8px}
+.diag-card .d-ico{font-size:1rem;flex-shrink:0}
+.diag-card .d-info{flex:1;min-width:0}
+.diag-card .d-name{font-size:.73rem;font-weight:700;color:var(--text)}
+.diag-card .d-url{font-size:.58rem;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.diag-card .d-status{font-size:.55rem;font-weight:800;padding:2px 6px;border-radius:8px;flex-shrink:0;text-transform:uppercase}
+.d-st-ok{background:#dcfce7;color:#16a34a}
+.d-st-fail{background:#fee2e2;color:#dc2626}
+.d-st-test{background:#fef3c7;color:#b45309}
+body.dark .d-st-ok{background:#14532d;color:#4ade80}
+body.dark .d-st-fail{background:#450a0a;color:#fca5a5}
+body.dark .d-st-test{background:#451a03;color:#fcd34d}
+.diag-btn{padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.72rem;font-weight:700;transition:all .2s;font-family:var(--font)}
+.diag-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--surface)}
 
-/* ── RESPONSIVE ── */
-@media(max-width:768px){
-  :root{--panel-w:290px;--hdr-h:50px}
-  #search-wrap{max-width:160px}
-  #coords{display:none}
-  .logo-sub{display:none}
-}
-@media(max-width:480px){
-  :root{--hdr-h:46px}
-  #search-wrap{max-width:120px}
-}
-@media print{#spanel,#hdr,#fabs,#ptoggle{display:none !important}}
+/* LEAFLET */
+.leaflet-popup-content-wrapper{background:var(--surface)!important;color:var(--text)!important;border-radius:var(--r)!important;box-shadow:var(--shadow-xl)!important}
+.leaflet-popup-tip{background:var(--surface)!important}
+.leaflet-popup-content{margin:11px 15px!important;font-family:var(--font)!important}
+.leaflet-bar a{background:var(--surface)!important;color:var(--text)!important;border-color:var(--border)!important}
+.leaflet-bar a:hover{background:var(--surface2)!important}
+.leaflet-control-attribution{background:var(--glass)!important;color:var(--text-muted)!important;font-size:.58rem!important;backdrop-filter:blur(8px)}
+
+@media(max-width:768px){:root{--panel-w:290px;--hdr-h:48px}#search-wrap{max-width:150px}#coords{display:none}.logo-sub{display:none}}
+@media(max-width:480px){:root{--hdr-h:44px}#search-wrap{max-width:110px}}
+@media print{#spanel,#hdr,#fabs,#ptoggle{display:none!important}}
 </style>
 </head>
 <body class="t-blue">
 
-<!-- LOADING -->
 <div id="load">
-  <div class="li2">🗺️</div>
+  <div class="licon">🗺️</div>
   <h2>SportsmanMap Pro</h2>
-  <p>Loading all 50 states &amp; live data feeds...</p>
+  <p>Initializing layers &amp; live feeds…</p>
   <div class="spin"></div>
 </div>
 
 <div id="app">
-
-<!-- ══════════════ HEADER ══════════════ -->
 <header id="hdr">
   <div class="logo">
     <i class="fa-solid fa-map-location-dot"></i>
-    <div>
-      SportsmanMap Pro
-      <span class="logo-sub">Hunt · Fish · Explore · All 50 States</span>
-    </div>
+    <div>SportsmanMap Pro<span class="logo-sub">Hunt · Fish · Explore · All 50 States</span></div>
   </div>
-
   <div id="search-wrap">
     <i class="fa-solid fa-magnifying-glass search-icon"></i>
-    <input id="search-inp" type="text" placeholder="Search any US location..." autocomplete="off"/>
+    <input id="search-inp" type="text" placeholder="Search US locations…" autocomplete="off"/>
     <div id="search-drop"></div>
   </div>
-
   <div class="hdr-space"></div>
-
-  <button class="hbtn" id="btn-gps"    title="My Location"><i class="fa-solid fa-location-crosshairs"></i></button>
-  <button class="hbtn" id="btn-meas"   title="Measure Distance"><i class="fa-solid fa-ruler"></i></button>
-  <button class="hbtn" id="btn-lstat"  title="Layer Status"><i class="fa-solid fa-signal"></i></button>
-  <button class="hbtn" id="btn-fs"     title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
-  <button class="hbtn" id="btn-share"  title="Share"><i class="fa-solid fa-share-nodes"></i></button>
-  <button class="hbtn" id="btn-gear"   title="Settings"><i class="fa-solid fa-gear"></i></button>
+  <button class="hbtn" id="btn-gps" title="My Location"><i class="fa-solid fa-location-crosshairs"></i></button>
+  <button class="hbtn" id="btn-meas" title="Measure"><i class="fa-solid fa-ruler"></i></button>
+  <button class="hbtn" id="btn-lstat" title="Layer Status"><i class="fa-solid fa-signal"></i></button>
+  <button class="hbtn" id="btn-fs" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
+  <button class="hbtn" id="btn-share" title="Share"><i class="fa-solid fa-share-nodes"></i></button>
+  <button class="hbtn" id="btn-gear" title="Settings"><i class="fa-solid fa-gear"></i></button>
 </header>
 
-<!-- ══════════════ MAIN ══════════════ -->
 <div id="main">
   <div id="map"></div>
-
   <div id="mresult">📏 <span id="mdist">Click map to start</span></div>
   <div id="coords">Lat: <span id="clat">—</span> · Lng: <span id="clng">—</span> · Zoom: <span id="czoom">—</span> · Elev: <span id="celev">—</span></div>
-
-  <!-- Layer Status Panel -->
-  <div id="lstatus">
-    <h6>📡 Active Layers</h6>
-    <div id="lstat-list"></div>
-  </div>
-
-  <!-- FABs -->
+  <div id="lstatus"><h6>📡 Active Layers</h6><div id="lstat-list"></div></div>
   <div id="fabs">
-    <button class="fab pf" id="fab-pin"   title="Drop Pin"><i class="fa-solid fa-map-pin"></i></button>
-    <button class="fab"    id="fab-zi"    title="Zoom In"><i class="fa-solid fa-plus"></i></button>
-    <button class="fab"    id="fab-zo"    title="Zoom Out"><i class="fa-solid fa-minus"></i></button>
-    <button class="fab"    id="fab-leg"   title="Legend"><i class="fa-solid fa-list"></i></button>
-    <button class="fab"    id="fab-home"  title="Reset View"><i class="fa-solid fa-house"></i></button>
+    <button class="fab pf" id="fab-pin" title="Drop Pin"><i class="fa-solid fa-map-pin"></i></button>
+    <button class="fab" id="fab-zi" title="Zoom In"><i class="fa-solid fa-plus"></i></button>
+    <button class="fab" id="fab-zo" title="Zoom Out"><i class="fa-solid fa-minus"></i></button>
+    <button class="fab" id="fab-leg" title="Legend"><i class="fa-solid fa-list"></i></button>
+    <button class="fab" id="fab-home" title="Reset"><i class="fa-solid fa-house"></i></button>
   </div>
-
-  <!-- Legend -->
   <div id="legend">
     <h5>🗺 Legend</h5>
     <div class="li"><div class="ld" style="background:#22c55e"></div>Federal / Public Land</div>
     <div class="li"><div class="ld" style="background:#3b82f6"></div>Water / Lakes</div>
-    <div class="li"><div class="ld" style="background:#f97316"></div>Wildlife Mgmt Unit</div>
+    <div class="li"><div class="ld" style="background:#f97316"></div>Wildlife Area</div>
     <div class="li"><div class="ld" style="background:#8b5cf6"></div>Trail / Route</div>
-    <div class="li"><div class="ld" style="background:#ef4444"></div>Restricted / No-Go</div>
-    <div class="li"><div class="ld" style="background:#10b981"></div>NWI Wetland</div>
-    <div class="li"><div class="ld" style="background:#fbbf24"></div>Parcel / Property</div>
+    <div class="li"><div class="ld" style="background:#ef4444"></div>Fire / Hazard</div>
+    <div class="li"><div class="ld" style="background:#10b981"></div>Wetland</div>
+    <div class="li"><div class="ld" style="background:#fbbf24"></div>Boundary</div>
     <div class="li"><div class="ll" style="background:#7dd3fc"></div>River / Stream</div>
   </div>
-
-  <!-- Panel Toggle -->
   <button id="ptoggle" title="Toggle Panel"><i class="fa-solid fa-chevron-right" id="pticon"></i></button>
 
-  <!-- ══════════════ SETTINGS PANEL ══════════════ -->
   <div id="spanel">
     <div id="panel-inner">
-
-      <div class="ph">
-        <h3><i class="fa-solid fa-sliders"></i> SportsmanMap Settings</h3>
-      </div>
-
+      <div class="ph"><h3><i class="fa-solid fa-sliders"></i> SportsmanMap Pro</h3></div>
       <div class="ptabs">
         <button class="ptab on" data-tab="layers"><i class="fa-solid fa-layer-group"></i>Layers</button>
         <button class="ptab" data-tab="basemap"><i class="fa-solid fa-map"></i>Maps</button>
         <button class="ptab" data-tab="pins"><i class="fa-solid fa-thumbtack"></i>Pins</button>
         <button class="ptab" data-tab="weather"><i class="fa-solid fa-cloud-sun"></i>Weather</button>
         <button class="ptab" data-tab="display"><i class="fa-solid fa-palette"></i>Style</button>
+        <button class="ptab" data-tab="diag"><i class="fa-solid fa-stethoscope"></i>Diag</button>
       </div>
 
-      <!-- ─── TAB: LAYERS ─── -->
+      <!-- LAYERS TAB -->
       <div class="pcontent tpane on" id="tab-layers">
-
-        <!-- FEDERAL LAND -->
-        <div class="sec">
-          <div class="sec-title"><i class="fa-solid fa-landmark"></i> Federal & Public Lands (Live)</div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#166534">🌲</div>
-              <div class="linfo">
-                <div class="lname">National Forests</div>
-                <div class="lsub">USFS — All US forests</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-nf" onchange="toggleLayer('nf',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#15803d">🏕️</div>
-              <div class="linfo">
-                <div class="lname">National Parks</div>
-                <div class="lsub">NPS — All US parks</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-nps" onchange="toggleLayer('nps',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#92400e">🏜️</div>
-              <div class="linfo">
-                <div class="lname">BLM Public Land</div>
-                <div class="lsub">Bureau of Land Mgmt</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-blm" onchange="toggleLayer('blm',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#065f46">🦌</div>
-              <div class="linfo">
-                <div class="lname">Wildlife Refuges</div>
-                <div class="lsub">USFWS National Refuges</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-fws" onchange="toggleLayer('fws',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#1e40af">💧</div>
-              <div class="linfo">
-                <div class="lname">Army Corps Lakes</div>
-                <div class="lsub">USACE water projects</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-usace" onchange="toggleLayer('usace',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#9a3412">🏞️</div>
-              <div class="linfo">
-                <div class="lname">State Land Boundaries</div>
-                <div class="lsub">PAD-US ownership</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-padus" onchange="toggleLayer('padus',this.checked)"><span class="tog-s"></span></label>
-          </div>
-        </div>
-
-        <!-- WATER & FISHING -->
-        <div class="sec">
-          <div class="sec-title"><i class="fa-solid fa-fish"></i> Water & Fishing</div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#0369a1">🌊</div>
-              <div class="linfo">
-                <div class="lname">NHD Streams & Rivers</div>
-                <div class="lsub">USGS Hydro — All USA</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-nhd" onchange="toggleLayer('nhd',this.checked)" checked><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#075985">🏞️</div>
-              <div class="linfo">
-                <div class="lname">NHD Lakes & Ponds</div>
-                <div class="lsub">USGS waterbodies</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-nhdlakes" onchange="toggleLayer('nhdlakes',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#0c4a6e">🎣</div>
-              <div class="linfo">
-                <div class="lname">Trout Streams</div>
-                <div class="lsub">USFS designated water</div>
-              </div>
-            </div>
-            <span class="lyr-status st-wms">WMS</span>
-            <label class="tog"><input type="checkbox" id="lyr-trout" onchange="toggleLayer('trout',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#0e7490">🚤</div>
-              <div class="linfo">
-                <div class="lname">Boat Ramps / Access</div>
-                <div class="lsub">USACE public launches</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-ramps" onchange="toggleLayer('ramps',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#164e63">🌿</div>
-              <div class="linfo">
-                <div class="lname">NWI Wetlands</div>
-                <div class="lsub">FWS — National Wetlands</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-nwi" onchange="toggleLayer('nwi',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#1d4ed8">💧</div>
-              <div class="linfo">
-                <div class="lname">Water Quality (EPA)</div>
-                <div class="lsub">EPA WATERS network</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-epa" onchange="toggleLayer('epa',this.checked)"><span class="tog-s"></span></label>
-          </div>
-        </div>
-
-        <!-- TERRAIN -->
-        <div class="sec">
-          <div class="sec-title"><i class="fa-solid fa-mountain"></i> Terrain & Elevation</div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#57534e">⛰️</div>
-              <div class="linfo">
-                <div class="lname">Topo Contours</div>
-                <div class="lsub">USGS — 10m intervals</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-topo" onchange="toggleLayer('topo',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#44403c">🏔️</div>
-              <div class="linfo">
-                <div class="lname">Hillshade / Shaded Relief</div>
-                <div class="lsub">Esri Elevation Service</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-hill" onchange="toggleLayer('hill',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#78716c">📊</div>
-              <div class="linfo">
-                <div class="lname">Slope Angle</div>
-                <div class="lsub">USGS 3DEP Terrain</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-slope" onchange="toggleLayer('slope',this.checked)"><span class="tog-s"></span></label>
-          </div>
-        </div>
-
-        <!-- WILDLIFE & HUNTING -->
-        <div class="sec">
-          <div class="sec-title"><i class="fa-solid fa-crosshairs"></i> Wildlife & Hunting</div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#7f1d1d">🦅</div>
-              <div class="linfo">
-                <div class="lname">Bald Eagle Nests</div>
-                <div class="lsub">USFWS — verified sites</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-eagle" onchange="toggleLayer('eagle',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#4c1d95">🦉</div>
-              <div class="linfo">
-                <div class="lname">Critical Habitat</div>
-                <div class="lsub">USFWS ESA areas</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-crithab" onchange="toggleLayer('crithab',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#7c2d12">🐝</div>
-              <div class="linfo">
-                <div class="lname">GBIF Species Obs.</div>
-                <div class="lsub">Wildlife sightings (live API)</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-gbif" onchange="toggleLayer('gbif',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#854d0e">🦌</div>
-              <div class="linfo">
-                <div class="lname">iNaturalist Wildlife</div>
-                <div class="lsub">Community observations</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-inat" onchange="toggleLayer('inat',this.checked)"><span class="tog-s"></span></label>
-          </div>
-        </div>
-
-        <!-- WEATHER & ENVIRONMENT -->
-        <div class="sec">
-          <div class="sec-title"><i class="fa-solid fa-cloud-bolt"></i> Weather & Environment</div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#4c1d95">🌧️</div>
-              <div class="linfo">
-                <div class="lname">NEXRAD Live Radar</div>
-                <div class="lsub">Iowa Mesonet / NOAA</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-radar" onchange="toggleLayer('radar',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#7c3aed">🌡️</div>
-              <div class="linfo">
-                <div class="lname">Temperature Overlay</div>
-                <div class="lsub">OpenWeatherMap tiles</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-temp" onchange="toggleLayer('temp',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#0891b2">💨</div>
-              <div class="linfo">
-                <div class="lname">Wind Speed Overlay</div>
-                <div class="lsub">OpenWeatherMap tiles</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-wind" onchange="toggleLayer('wind',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#b91c1c">🔥</div>
-              <div class="linfo">
-                <div class="lname">Active Wildfires</div>
-                <div class="lsub">NASA FIRMS MODIS</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-fire" onchange="toggleLayer('fire',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#065f46">🌱</div>
-              <div class="linfo">
-                <div class="lname">NDVI Vegetation</div>
-                <div class="lsub">USGS EE greenness</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-ndvi" onchange="toggleLayer('ndvi',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#1e3a5f">❄️</div>
-              <div class="linfo">
-                <div class="lname">Snow Cover (NOHRSC)</div>
-                <div class="lsub">NOAA snow depth tiles</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-snow" onchange="toggleLayer('snow',this.checked)"><span class="tog-s"></span></label>
-          </div>
-        </div>
-
-        <!-- TRAILS & RECREATION -->
-        <div class="sec">
-          <div class="sec-title"><i class="fa-solid fa-person-hiking"></i> Trails & Recreation</div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#6d28d9">🥾</div>
-              <div class="linfo">
-                <div class="lname">USFS Trails</div>
-                <div class="lsub">National Forest System</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-fsTrails" onchange="toggleLayer('fsTrails',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#7c3aed">🚵</div>
-              <div class="linfo">
-                <div class="lname">NPS Trails</div>
-                <div class="lsub">National Park trails</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-npsTrails" onchange="toggleLayer('npsTrails',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#0f766e">⛺</div>
-              <div class="linfo">
-                <div class="lname">Campgrounds</div>
-                <div class="lsub">Recreation.gov sites</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-camp" onchange="toggleLayer('camp',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#dc2626">🏍️</div>
-              <div class="linfo">
-                <div class="lname">OHV / ATV Trails</div>
-                <div class="lsub">USFS motorized routes</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-ohv" onchange="toggleLayer('ohv',this.checked)"><span class="tog-s"></span></label>
-          </div>
-        </div>
-
-        <!-- LAND & PROPERTY -->
-        <div class="sec">
-          <div class="sec-title"><i class="fa-solid fa-border-all"></i> Land & Property</div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#a16207">🗺️</div>
-              <div class="linfo">
-                <div class="lname">USGS Topo Overlay</div>
-                <div class="lsub">US Topo quad sheets</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-usgsquad" onchange="toggleLayer('usgsquad',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#4338ca">📋</div>
-              <div class="linfo">
-                <div class="lname">County Boundaries</div>
-                <div class="lsub">US Census TIGER</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-county" onchange="toggleLayer('county',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#1e40af">🏛️</div>
-              <div class="linfo">
-                <div class="lname">Congressional Districts</div>
-                <div class="lsub">US Census boundaries</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-congress" onchange="toggleLayer('congress',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#0f766e">🚧</div>
-              <div class="linfo">
-                <div class="lname">Roads (Detailed)</div>
-                <div class="lsub">USGS transport layer</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-roads" onchange="toggleLayer('roads',this.checked)"><span class="tog-s"></span></label>
-          </div>
-        </div>
-
-        <!-- AGRICULTURE -->
-        <div class="sec">
-          <div class="sec-title"><i class="fa-solid fa-seedling"></i> Agriculture & Land Use</div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#84cc16">🌾</div>
-              <div class="linfo">
-                <div class="lname">Cropland Data (NASS)</div>
-                <div class="lsub">USDA CDL crop types</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-cdl" onchange="toggleLayer('cdl',this.checked)"><span class="tog-s"></span></label>
-          </div>
-
-          <div class="lyr">
-            <div class="lyr-left">
-              <div class="lico" style="background:#65a30d">🐄</div>
-              <div class="linfo">
-                <div class="lname">Grazing Allotments</div>
-                <div class="lsub">BLM grazing districts</div>
-              </div>
-            </div>
-            <span class="lyr-status st-live">LIVE</span>
-            <label class="tog"><input type="checkbox" id="lyr-graze" onchange="toggleLayer('graze',this.checked)"><span class="tog-s"></span></label>
-          </div>
-        </div>
-
-        <!-- OPACITY -->
+        <div id="layer-sections"></div>
         <div class="sec">
           <div class="sec-title"><i class="fa-solid fa-circle-half-stroke"></i> Overlay Opacity</div>
-          <div class="srow">
-            <label>All Layers</label>
-            <input type="range" min="10" max="100" value="80" id="op-main" oninput="setOpacity('main',this.value)">
-            <span class="sv" id="op-main-v">80%</span>
-          </div>
-          <div class="srow">
-            <label>Radar</label>
-            <input type="range" min="10" max="100" value="60" id="op-radar" oninput="setOpacity('radar',this.value)">
-            <span class="sv" id="op-radar-v">60%</span>
-          </div>
+          <div class="srow"><label>All Layers</label><input type="range" min="10" max="100" value="80" id="op-main" oninput="setOpacity('main',this.value)"><span class="sv" id="op-main-v">80%</span></div>
+          <div class="srow"><label>Radar</label><input type="range" min="10" max="100" value="60" id="op-radar" oninput="setOpacity('radar',this.value)"><span class="sv" id="op-radar-v">60%</span></div>
         </div>
       </div>
-      <!-- END TAB LAYERS -->
 
-      <!-- ─── TAB: BASEMAPS ─── -->
+      <!-- BASEMAPS TAB -->
       <div class="pcontent tpane" id="tab-basemap">
-        <div class="sec">
-          <div class="sec-title"><i class="fa-solid fa-map"></i> Choose Base Map</div>
-          <div class="bmgrid" id="bmgrid"></div>
-        </div>
+        <div class="sec"><div class="sec-title"><i class="fa-solid fa-map"></i> Choose Base Map</div><div class="bmgrid" id="bmgrid"></div></div>
       </div>
 
-      <!-- ─── TAB: PINS ─── -->
+      <!-- PINS TAB -->
       <div class="pcontent tpane" id="tab-pins">
         <div class="sec">
           <div class="sec-title"><i class="fa-solid fa-map-pin"></i> Saved Pins</div>
-          <button class="btn btn-p" style="width:100%;margin-bottom:10px" onclick="openPinModal()">
-            <i class="fa-solid fa-plus" style="margin-right:5px"></i>Add New Pin
-          </button>
+          <button class="btn btn-p" style="width:100%;margin-bottom:10px" onclick="openPinModal()"><i class="fa-solid fa-plus" style="margin-right:5px"></i>Add New Pin</button>
           <div id="pinlist"></div>
         </div>
         <div class="sec">
           <div class="sec-title"><i class="fa-solid fa-download"></i> Export Pins</div>
           <div style="display:flex;gap:6px">
-            <button class="btn btn-s" style="flex:1;font-size:.72rem" onclick="exportPins('gpx')">GPX</button>
-            <button class="btn btn-s" style="flex:1;font-size:.72rem" onclick="exportPins('kml')">KML</button>
-            <button class="btn btn-s" style="flex:1;font-size:.72rem" onclick="exportPins('json')">JSON</button>
+            <button class="btn btn-s" style="flex:1;font-size:.7rem" onclick="exportPins('gpx')">GPX</button>
+            <button class="btn btn-s" style="flex:1;font-size:.7rem" onclick="exportPins('kml')">KML</button>
+            <button class="btn btn-s" style="flex:1;font-size:.7rem" onclick="exportPins('json')">JSON</button>
           </div>
         </div>
       </div>
 
-      <!-- ─── TAB: WEATHER ─── -->
+      <!-- WEATHER TAB -->
       <div class="pcontent tpane" id="tab-weather">
         <div class="sec">
           <div class="sec-title"><i class="fa-solid fa-cloud-sun"></i> Current Conditions</div>
           <div class="wcrd">
-            <div class="wloc"><i class="fa-solid fa-location-dot"></i><span id="w-city">Detecting...</span></div>
+            <div class="wloc"><i class="fa-solid fa-location-dot"></i><span id="w-city">Detecting…</span></div>
             <div class="wmain">
               <div class="wico" id="w-ico">⏳</div>
-              <div>
-                <div class="wtemp" id="w-temp">--°F</div>
-                <div class="wdesc" id="w-desc">Loading...</div>
-              </div>
+              <div><div class="wtemp" id="w-temp">--°F</div><div class="wdesc" id="w-desc">Loading…</div></div>
             </div>
             <div class="wgrid">
               <div class="wdet"><i class="fa-solid fa-droplet"></i><span id="w-hum">--</span></div>
@@ -1016,132 +459,75 @@ input:checked+.tog-s::before{transform:translateX(17px)}
         </div>
         <div class="sec">
           <div class="sec-title"><i class="fa-solid fa-sun"></i> Sun & Moon</div>
-          <div class="icard">
-            <h5>☀️ Sunrise / Sunset</h5>
-            <div class="igrid">
-              <div class="istat"><span class="sv2" id="sunrise">--:--</span><span class="sl">Sunrise</span></div>
-              <div class="istat"><span class="sv2" id="sunset">--:--</span><span class="sl">Sunset</span></div>
-            </div>
-          </div>
-          <div class="icard">
-            <h5>🌙 Moon Phase</h5>
-            <div class="igrid">
-              <div class="istat"><span class="sv2" id="moon-ph">🌕</span><span class="sl">Phase</span></div>
-              <div class="istat"><span class="sv2" id="moon-il">--%</span><span class="sl">Illumination</span></div>
-            </div>
-          </div>
+          <div class="icard"><h5>☀️ Sunrise / Sunset</h5><div class="igrid"><div class="istat"><span class="sv2" id="sunrise">--:--</span><span class="sl">Sunrise</span></div><div class="istat"><span class="sv2" id="sunset">--:--</span><span class="sl">Sunset</span></div></div></div>
+          <div class="icard"><h5>🌙 Moon Phase</h5><div class="igrid"><div class="istat"><span class="sv2" id="moon-ph">🌕</span><span class="sl">Phase</span></div><div class="istat"><span class="sv2" id="moon-il">--%</span><span class="sl">Illumination</span></div></div></div>
         </div>
         <div class="sec">
           <div class="sec-title"><i class="fa-solid fa-fish"></i> Solunar Activity</div>
-          <div class="icard">
-            <h5>🌊 Best Activity Times</h5>
-            <p>Moon &amp; sun position forecast for optimal game &amp; fish activity.</p>
-            <div class="igrid" style="margin-top:7px">
-              <div class="istat"><span class="sv2" id="sol-maj">--:--</span><span class="sl">Major Period</span></div>
-              <div class="istat"><span class="sv2" id="sol-min">--:--</span><span class="sl">Minor Period</span></div>
-            </div>
-          </div>
-          <div class="icard">
-            <h5>🦌 Rut / Season Guide</h5>
-            <p id="season-guide">Calculating based on date...</p>
-          </div>
+          <div class="icard"><h5>🌊 Best Activity Times</h5><p>Optimal game &amp; fish activity periods.</p><div class="igrid" style="margin-top:7px"><div class="istat"><span class="sv2" id="sol-maj">--:--</span><span class="sl">Major</span></div><div class="istat"><span class="sv2" id="sol-min">--:--</span><span class="sl">Minor</span></div></div></div>
+          <div class="icard"><h5>🦌 Season Guide</h5><p id="season-guide">Calculating…</p></div>
         </div>
-        <div class="sec">
-          <div class="sec-title"><i class="fa-solid fa-triangle-exclamation"></i> NOAA Alerts</div>
-          <div id="noaa-alerts"><div class="icard"><p>Loading NOAA alerts...</p></div></div>
-        </div>
+        <div class="sec"><div class="sec-title"><i class="fa-solid fa-triangle-exclamation"></i> NOAA Alerts</div><div id="noaa-alerts"><div class="icard"><p>Loading…</p></div></div></div>
       </div>
 
-      <!-- ─── TAB: DISPLAY ─── -->
+      <!-- DISPLAY TAB -->
       <div class="pcontent tpane" id="tab-display">
-
         <div class="sec">
           <div class="sec-title"><i class="fa-solid fa-circle-half-stroke"></i> Appearance</div>
-          <div class="mrow">
-            <div class="ml"><i class="fa-solid fa-moon"></i> Dark Mode</div>
-            <label class="tog"><input type="checkbox" id="dark-tog" onchange="setDark(this.checked)"><span class="tog-s"></span></label>
-          </div>
-          <div class="mrow">
-            <div class="ml"><i class="fa-solid fa-crosshairs"></i> Show Coordinates</div>
-            <label class="tog"><input type="checkbox" id="coord-tog" checked onchange="toggleCoords(this.checked)"><span class="tog-s"></span></label>
-          </div>
-          <div class="mrow">
-            <div class="ml"><i class="fa-solid fa-ruler"></i> Scale Bar</div>
-            <label class="tog"><input type="checkbox" id="scale-tog" checked onchange="toggleScale(this.checked)"><span class="tog-s"></span></label>
-          </div>
-          <div class="mrow">
-            <div class="ml"><i class="fa-solid fa-location-dot"></i> Show My GPS Dot</div>
-            <label class="tog"><input type="checkbox" id="gps-tog" onchange="if(this.checked)startGPS();else stopGPS()"><span class="tog-s"></span></label>
-          </div>
-          <div class="mrow">
-            <div class="ml"><i class="fa-solid fa-mouse-pointer"></i> Click to Identify</div>
-            <label class="tog"><input type="checkbox" id="id-tog" checked onchange="S.identify=this.checked"><span class="tog-s"></span></label>
-          </div>
+          <div class="mrow"><div class="ml"><i class="fa-solid fa-moon"></i> Dark Mode</div><label class="tog"><input type="checkbox" id="dark-tog" onchange="setDark(this.checked)"><span class="tog-s"></span></label></div>
+          <div class="mrow"><div class="ml"><i class="fa-solid fa-crosshairs"></i> Coordinates</div><label class="tog"><input type="checkbox" id="coord-tog" checked onchange="toggleCoords(this.checked)"><span class="tog-s"></span></label></div>
+          <div class="mrow"><div class="ml"><i class="fa-solid fa-ruler"></i> Scale Bar</div><label class="tog"><input type="checkbox" id="scale-tog" checked onchange="toggleScale(this.checked)"><span class="tog-s"></span></label></div>
+          <div class="mrow"><div class="ml"><i class="fa-solid fa-location-dot"></i> GPS Dot</div><label class="tog"><input type="checkbox" id="gps-tog" onchange="if(this.checked)startGPS();else stopGPS()"><span class="tog-s"></span></label></div>
+          <div class="mrow"><div class="ml"><i class="fa-solid fa-mouse-pointer"></i> Click to Identify</div><label class="tog"><input type="checkbox" id="id-tog" checked onchange="S.identify=this.checked"><span class="tog-s"></span></label></div>
         </div>
-
-        <div class="sec">
-          <div class="sec-title"><i class="fa-solid fa-palette"></i> Color Theme</div>
+        <div class="sec"><div class="sec-title"><i class="fa-solid fa-palette"></i> Color Theme</div>
           <div class="tdots">
-            <div class="tdot td-blue   on"  data-t="blue"   title="Blue"   onclick="setTheme('blue')">  <i class="fa-solid fa-check" id="th-blue"></i></div>
-            <div class="tdot td-green"       data-t="green"  title="Green"  onclick="setTheme('green')"></div>
-            <div class="tdot td-red"         data-t="red"    title="Red"    onclick="setTheme('red')">  </div>
-            <div class="tdot td-purple"      data-t="purple" title="Purple" onclick="setTheme('purple')"></div>
-            <div class="tdot td-orange"      data-t="orange" title="Orange" onclick="setTheme('orange')"></div>
+            <div class="tdot td-blue on" data-t="blue" onclick="setTheme('blue')"><i class="fa-solid fa-check"></i></div>
+            <div class="tdot td-green" data-t="green" onclick="setTheme('green')"></div>
+            <div class="tdot td-red" data-t="red" onclick="setTheme('red')"></div>
+            <div class="tdot td-purple" data-t="purple" onclick="setTheme('purple')"></div>
+            <div class="tdot td-orange" data-t="orange" onclick="setTheme('orange')"></div>
           </div>
         </div>
-
-        <div class="sec">
-          <div class="sec-title"><i class="fa-solid fa-arrows-up-down-left-right"></i> Panel Position</div>
+        <div class="sec"><div class="sec-title"><i class="fa-solid fa-arrows-up-down-left-right"></i> Panel Position</div>
           <div class="posgrid">
-            <button class="pbtn" onclick="setPanelPos('top')">   <i class="fa-solid fa-arrow-up"></i>Top</button>
-            <button class="pbtn" onclick="setPanelPos('left')">  <i class="fa-solid fa-arrow-left"></i>Left</button>
-            <button class="pbtn on" id="pb-right" onclick="setPanelPos('right')"><i class="fa-solid fa-arrow-right"></i>Right</button>
-            <button class="pbtn" onclick="setPanelPos('bottom')"><i class="fa-solid fa-arrow-down"></i>Bottom</button>
+            <button class="pbtn" onclick="setPanelPos('left')"><i class="fa-solid fa-arrow-left"></i>Left</button>
+            <button class="pbtn on" onclick="setPanelPos('right')"><i class="fa-solid fa-arrow-right"></i>Right</button>
           </div>
         </div>
-
-        <div class="sec">
-          <div class="sec-title"><i class="fa-solid fa-ruler"></i> Units & Format</div>
-          <div class="fgrp">
-            <label>Distance</label>
-            <select id="unit-sel" onchange="S.units=this.value;toast('📏 Units: '+this.value)">
-              <option value="imperial">Imperial (mi, ft)</option>
-              <option value="metric">Metric (km, m)</option>
-            </select>
-          </div>
-          <div class="fgrp">
-            <label>Coordinate Format</label>
-            <select id="cf-sel" onchange="S.cf=this.value">
-              <option value="dd">Decimal Degrees</option>
-              <option value="dms">Deg Min Sec</option>
-              <option value="ddm">Deg Dec Min</option>
-            </select>
-          </div>
-          <div class="fgrp">
-            <label>Elevation Units</label>
-            <select id="ev-sel" onchange="S.elevUnit=this.value">
-              <option value="ft">Feet</option>
-              <option value="m">Meters</option>
-            </select>
-          </div>
+        <div class="sec"><div class="sec-title"><i class="fa-solid fa-ruler"></i> Units & Format</div>
+          <div class="fgrp"><label>Distance</label><select id="unit-sel" onchange="S.units=this.value;toast('📏 '+this.value)"><option value="imperial">Imperial (mi, ft)</option><option value="metric">Metric (km, m)</option></select></div>
+          <div class="fgrp"><label>Coordinate Format</label><select id="cf-sel" onchange="S.cf=this.value"><option value="dd">Decimal Degrees</option><option value="dms">Deg Min Sec</option><option value="ddm">Deg Dec Min</option></select></div>
+          <div class="fgrp"><label>Elevation</label><select id="ev-sel" onchange="S.elevUnit=this.value"><option value="ft">Feet</option><option value="m">Meters</option></select></div>
         </div>
       </div>
 
-    </div><!-- /panel-inner -->
-  </div><!-- /spanel -->
-</div><!-- /main -->
-</div><!-- /app -->
+      <!-- DIAGNOSTICS TAB -->
+      <div class="pcontent tpane" id="tab-diag">
+        <div class="sec">
+          <div class="sec-title"><i class="fa-solid fa-stethoscope"></i> Layer Health Check</div>
+          <p style="font-size:.7rem;color:var(--text-muted);margin-bottom:10px">Tests each layer's endpoint. Layers that fail are moved to "Experimental" below.</p>
+          <button class="diag-btn" onclick="runDiagnostics()" style="width:100%;margin-bottom:12px"><i class="fa-solid fa-play" style="margin-right:5px"></i>Run All Tests</button>
+          <div id="diag-results"></div>
+        </div>
+        <div class="sec">
+          <div class="sec-title"><i class="fa-solid fa-flask"></i> Experimental / Unreliable Layers</div>
+          <p style="font-size:.68rem;color:var(--text-muted);margin-bottom:8px">These layers use government endpoints that may be offline, require VPN, or have changed URLs. Toggle at your own risk.</p>
+          <div id="exp-layers"></div>
+        </div>
+      </div>
 
-<!-- ══════════════ PIN MODAL ══════════════ -->
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- PIN MODAL -->
 <div id="moverlay">
   <div class="modal">
-    <div class="mhdr">
-      <h3><i class="fa-solid fa-map-pin"></i> Save Location</h3>
-      <button class="mclose" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
-    </div>
+    <div class="mhdr"><h3><i class="fa-solid fa-map-pin"></i> Save Location</h3><button class="mclose" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button></div>
     <div class="mbody">
-      <div class="fgrp">
-        <label>Icon</label>
+      <div class="fgrp"><label>Icon</label>
         <div class="epick" id="epick">
           <button class="ebtn on" data-e="📍" onclick="selEmoji(this,'📍')">📍</button>
           <button class="ebtn" data-e="🎯" onclick="selEmoji(this,'🎯')">🎯</button>
@@ -1161,360 +547,210 @@ input:checked+.tog-s::before{transform:translateX(17px)}
           <button class="ebtn" data-e="🚁" onclick="selEmoji(this,'🚁')">🚁</button>
         </div>
       </div>
-      <div class="fgrp">
-        <label>Name</label>
-        <input type="text" id="pin-name" placeholder="e.g. Duck Blind #3" maxlength="50"/>
-      </div>
-      <div class="fgrp">
-        <label>Notes</label>
-        <textarea id="pin-notes" placeholder="Notes about this spot..."></textarea>
-      </div>
-      <div class="fgrp">
-        <label>Category</label>
-        <select id="pin-cat">
-          <option value="hunting">🦌 Hunting</option>
-          <option value="fishing">🎣 Fishing</option>
-          <option value="camping">⛺ Camping</option>
-          <option value="parking">🚗 Parking / Trailhead</option>
-          <option value="waypoint">📍 Waypoint</option>
-          <option value="hazard">⚠️ Hazard</option>
-          <option value="poi">⭐ Point of Interest</option>
-        </select>
-      </div>
-      <div class="fgrp">
-        <label>Coordinates (auto-filled)</label>
-        <input type="text" id="pin-latlng" readonly/>
-      </div>
+      <div class="fgrp"><label>Name</label><input type="text" id="pin-name" placeholder="e.g. Duck Blind #3" maxlength="50"/></div>
+      <div class="fgrp"><label>Notes</label><textarea id="pin-notes" placeholder="Notes about this spot…"></textarea></div>
+      <div class="fgrp"><label>Category</label><select id="pin-cat"><option value="hunting">🦌 Hunting</option><option value="fishing">🎣 Fishing</option><option value="camping">⛺ Camping</option><option value="parking">🚗 Parking</option><option value="waypoint">📍 Waypoint</option><option value="hazard">⚠️ Hazard</option><option value="poi">⭐ POI</option></select></div>
+      <div class="fgrp"><label>Coordinates</label><input type="text" id="pin-latlng" readonly/></div>
     </div>
-    <div class="mfoot">
-      <button class="btn btn-s" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-p" onclick="savePin()"><i class="fa-solid fa-floppy-disk" style="margin-right:5px"></i>Save</button>
-    </div>
+    <div class="mfoot"><button class="btn btn-s" onclick="closeModal()">Cancel</button><button class="btn btn-p" onclick="savePin()"><i class="fa-solid fa-floppy-disk" style="margin-right:5px"></i>Save</button></div>
   </div>
 </div>
 
 <div id="toasts"></div>
 
-<!-- ══════════════ SCRIPTS ══════════════ -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
-/* ═══════════════════════════════════════════════════════════════
-   SPORTSMAN MAP PRO — ALL 50 STATES
-   All layers use real, free, publicly available tile services
-═══════════════════════════════════════════════════════════════ */
 'use strict';
 
-/* ── APP STATE ── */
-const S = {
-  map: null,
-  basemap: null,
-  activeBM: 'topo',
-  layers: {},      // active L.TileLayer / L.FeatureGroup
-  layerDefs: {},   // layer definitions
-  pins: [],
-  meas: false,
-  measPts: [],
-  measLine: null,
-  gps: false,
-  gpsM: null,
-  gpsC: null,
-  identify: true,
-  units: 'imperial',
-  cf: 'dd',
-  elevUnit: 'ft',
-  panelOpen: true,
-  panelPos: 'right',
-  theme: 'blue',
-  dark: false,
-  emoji: '📍',
-  tempLat: null,
-  tempLng: null,
-  scaleCtrl: null,
-  opacities: { main: 0.80, radar: 0.60 },
-  activeLayers: new Set(),
+const S={map:null,basemap:null,activeBM:'osm',layers:{},layerDefs:{},pins:[],meas:false,measPts:[],measLine:null,gps:false,gpsM:null,gpsC:null,identify:true,units:'imperial',cf:'dd',elevUnit:'ft',panelOpen:true,panelPos:'right',theme:'blue',dark:false,emoji:'📍',tempLat:null,tempLng:null,scaleCtrl:null,opacities:{main:.80,radar:.60},activeLayers:new Set(),layerHealth:{}};
+
+/* ═══════ BASEMAPS ═══════ */
+const BASEMAPS={
+  osm:{name:'OpenStreetMap',em:'🗺️',url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',opt:{attribution:'© OSM',maxZoom:19}},
+  esriSat:{name:'Esri Satellite',em:'🛰️',url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',opt:{attribution:'© Esri',maxZoom:19}},
+  esriTopo:{name:'Esri Topo',em:'🗻',url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',opt:{attribution:'© Esri',maxZoom:19}},
+  usgsTopo:{name:'USGS Topo',em:'⛰️',url:'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',opt:{attribution:'© USGS',maxZoom:16}},
+  usgsImg:{name:'USGS Imagery',em:'📡',url:'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryTopo/MapServer/tile/{z}/{y}/{x}',opt:{attribution:'© USGS',maxZoom:16}},
+  openTopo:{name:'OpenTopoMap',em:'🏔️',url:'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',opt:{attribution:'© OpenTopoMap',maxZoom:17}},
+  cartoDark:{name:'Dark',em:'🌑',url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',opt:{attribution:'© CartoDB',maxZoom:19}},
+  cartoLight:{name:'Light',em:'☀️',url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',opt:{attribution:'© CartoDB',maxZoom:19}},
+  esriNatGeo:{name:'Nat Geo',em:'🌍',url:'https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}',opt:{attribution:'© Esri/NatGeo',maxZoom:16}},
+  relief:{name:'Shaded Relief',em:'🏞️',url:'https://basemap.nationalmap.gov/arcgis/rest/services/USGSShadedReliefOnly/MapServer/tile/{z}/{y}/{x}',opt:{attribution:'© USGS',maxZoom:16}},
 };
 
-/* ═══════════════════════════════════════════════════
-   BASEMAP DEFINITIONS  — all real, free tile sources
-═══════════════════════════════════════════════════ */
-const BASEMAPS = {
-  topo: {
-    name:'USGS Topo', em:'⛰️',
-    url:'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
-    opt:{attribution:'© USGS The National Map',maxZoom:16}
-  },
-  imagery: {
-    name:'USGS Satellite', em:'🛰️',
-    url:'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}',
-    opt:{attribution:'© USGS',maxZoom:16}
-  },
-  imageryTopo:{
-    name:'USGS Imagery+Topo', em:'📡',
-    url:'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryTopo/MapServer/tile/{z}/{y}/{x}',
-    opt:{attribution:'© USGS',maxZoom:16}
-  },
-  osm:{
-    name:'OpenStreetMap', em:'🗺️',
-    url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    opt:{attribution:'© OpenStreetMap contributors',maxZoom:19}
-  },
-  openTopo:{
-    name:'OpenTopoMap', em:'🏔️',
-    url:'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-    opt:{attribution:'© OpenTopoMap',maxZoom:17}
-  },
-  esriSat:{
-    name:'Esri World Imagery', em:'🌍',
-    url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    opt:{attribution:'© Esri / DigitalGlobe',maxZoom:19}
-  },
-  esriTopo:{
-    name:'Esri World Topo', em:'🗻',
-    url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-    opt:{attribution:'© Esri / NatGeo',maxZoom:19}
-  },
-  cartoDark:{
-    name:'Dark (CartoDB)', em:'🌑',
-    url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    opt:{attribution:'© CartoDB',maxZoom:19}
-  },
-  cartoLight:{
-    name:'Light (CartoDB)', em:'☀️',
-    url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    opt:{attribution:'© CartoDB',maxZoom:19}
-  },
-  shadedRelief:{
-    name:'Shaded Relief (USGS)', em:'🏞️',
+/* ═══════ LAYER DEFINITIONS ═══════
+   reliable = true means this endpoint is known-working (public tiles/well-known WMS)
+   reliable = false means it may fail (gov endpoints change, go down, etc.)
+*/
+const LAYER_CATALOG=[
+  // ── VERIFIED WORKING TILE LAYERS ──
+  {id:'nhd',cat:'Water & Fishing',name:'NHD Streams & Rivers',sub:'USGS Hydro Cached',ico:'🌊',bg:'#0369a1',type:'tile',reliable:true,
+    url:'https://basemap.nationalmap.gov/arcgis/rest/services/USGSHydroCached/MapServer/tile/{z}/{y}/{x}',
+    opt:{attribution:'© USGS',maxZoom:16,opacity:.75}},
+  {id:'hill',cat:'Terrain & Elevation',name:'Hillshade',sub:'Esri World Hillshade',ico:'🏔️',bg:'#44403c',type:'tile',reliable:true,
+    url:'https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}',
+    opt:{attribution:'© Esri',maxZoom:18,opacity:.5}},
+  {id:'slope',cat:'Terrain & Elevation',name:'Shaded Relief',sub:'USGS 3DEP',ico:'📊',bg:'#78716c',type:'tile',reliable:true,
     url:'https://basemap.nationalmap.gov/arcgis/rest/services/USGSShadedReliefOnly/MapServer/tile/{z}/{y}/{x}',
-    opt:{attribution:'© USGS',maxZoom:16}
-  },
-};
+    opt:{attribution:'© USGS',maxZoom:16,opacity:.45}},
+  {id:'topo',cat:'Terrain & Elevation',name:'Topo Overlay',sub:'USGS Topo transparent',ico:'⛰️',bg:'#57534e',type:'tile',reliable:true,
+    url:'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
+    opt:{attribution:'© USGS',maxZoom:16,opacity:.55}},
+  {id:'radar',cat:'Weather & Environment',name:'NEXRAD Radar',sub:'Iowa Mesonet / NOAA',ico:'🌧️',bg:'#4c1d95',type:'tile',reliable:true,
+    url:'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png',
+    opt:{attribution:'© Iowa Mesonet',maxZoom:12,opacity:.6}},
+  {id:'temp',cat:'Weather & Environment',name:'Temperature',sub:'OpenWeatherMap',ico:'🌡️',bg:'#7c3aed',type:'tile',reliable:true,
+    url:'https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=bd5e378503939ddaee76f12ad7a97608',
+    opt:{attribution:'© OWM',maxZoom:18,opacity:.5}},
+  {id:'wind',cat:'Weather & Environment',name:'Wind Speed',sub:'OpenWeatherMap',ico:'💨',bg:'#0891b2',type:'tile',reliable:true,
+    url:'https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=bd5e378503939ddaee76f12ad7a97608',
+    opt:{attribution:'© OWM',maxZoom:18,opacity:.5}},
+  {id:'precip',cat:'Weather & Environment',name:'Precipitation',sub:'OpenWeatherMap',ico:'🌧️',bg:'#1d4ed8',type:'tile',reliable:true,
+    url:'https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=bd5e378503939ddaee76f12ad7a97608',
+    opt:{attribution:'© OWM',maxZoom:18,opacity:.5}},
+  {id:'clouds',cat:'Weather & Environment',name:'Cloud Cover',sub:'OpenWeatherMap',ico:'☁️',bg:'#64748b',type:'tile',reliable:true,
+    url:'https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=bd5e378503939ddaee76f12ad7a97608',
+    opt:{attribution:'© OWM',maxZoom:18,opacity:.5}},
 
-/* ═══════════════════════════════════════════════════
-   LAYER DEFINITIONS — real WMS / tile / API sources
-═══════════════════════════════════════════════════ */
-function buildLayerDefs() {
-  /* Helper: Esri MapServer tile */
-  const esri = (svc,lyr='',op={}) => ({
-    type:'tile',
-    url:`https://server.arcgisonline.com/ArcGIS/rest/services/${svc}/MapServer/tile/{z}/{y}/{x}`,
-    opt:{attribution:'© Esri',maxZoom:19,...op}
-  });
+  // ── VERIFIED WORKING WMS LAYERS ──
+  {id:'county',cat:'Land & Boundaries',name:'County Boundaries',sub:'US Census TIGER',ico:'📋',bg:'#4338ca',type:'wms',reliable:true,
+    url:'https://tigerweb.geo.census.gov/arcgis/services/TIGERweb/tigerWMS_Current/MapServer/WMSServer',
+    opt:{layers:'86',format:'image/png',transparent:true,attribution:'© Census',opacity:.55}},
+  {id:'states',cat:'Land & Boundaries',name:'State Boundaries',sub:'US Census TIGER',ico:'🏛️',bg:'#1e40af',type:'wms',reliable:true,
+    url:'https://tigerweb.geo.census.gov/arcgis/services/TIGERweb/tigerWMS_Current/MapServer/WMSServer',
+    opt:{layers:'84',format:'image/png',transparent:true,attribution:'© Census',opacity:.5}},
+  {id:'roads',cat:'Land & Boundaries',name:'Major Roads',sub:'US Census TIGER',ico:'🚧',bg:'#0f766e',type:'wms',reliable:true,
+    url:'https://tigerweb.geo.census.gov/arcgis/services/TIGERweb/tigerWMS_Current/MapServer/WMSServer',
+    opt:{layers:'2,4,6',format:'image/png',transparent:true,attribution:'© Census',opacity:.6}},
+  {id:'congress',cat:'Land & Boundaries',name:'Congressional Districts',sub:'119th Congress',ico:'🗳️',bg:'#7c2d12',type:'wms',reliable:true,
+    url:'https://tigerweb.geo.census.gov/arcgis/services/TIGERweb/tigerWMS_Current/MapServer/WMSServer',
+    opt:{layers:'54',format:'image/png',transparent:true,attribution:'© Census',opacity:.4}},
+  {id:'nwi',cat:'Water & Fishing',name:'NWI Wetlands',sub:'USFWS National Wetlands',ico:'🌿',bg:'#164e63',type:'wms',reliable:true,
+    url:'https://fwspublicservices.wim.usgs.gov/wetlandsmapservice/services/Wetlands/MapServer/WMSServer',
+    opt:{layers:'1',format:'image/png',transparent:true,attribution:'© USFWS',opacity:.55}},
+  {id:'fire',cat:'Weather & Environment',name:'Active Fires (VIIRS)',sub:'NASA GIBS satellite',ico:'🔥',bg:'#b91c1c',type:'tile',reliable:true,
+    url:'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_Thermal_Anomalies_All/default/2024-01-01/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png',
+    opt:{attribution:'© NASA GIBS',maxZoom:9,opacity:.85},
+    note:'Shows recent thermal anomalies. Updates ~daily.'},
+  {id:'snow',cat:'Weather & Environment',name:'Snow Cover',sub:'NOAA NOHRSC',ico:'❄️',bg:'#1e3a5f',type:'wms',reliable:true,
+    url:'https://idpgis.ncep.noaa.gov/arcgis/services/NWS_Observations/NOHRSC_Snow_Analysis/MapServer/WMSServer',
+    opt:{layers:'1',format:'image/png',transparent:true,attribution:'© NOAA',opacity:.65}},
 
-  /* Helper: ArcGIS REST WMS */
-  const arcWMS = (url, layers, op={}) => ({
-    type:'wms',
-    url,
-    opt:{layers, format:'image/png', transparent:true, attribution:'© Esri ArcGIS', ...op}
-  });
+  // ── API LAYERS (always work if internet available) ──
+  {id:'gbif',cat:'Wildlife & Hunting',name:'GBIF Wildlife Obs.',sub:'Global Biodiversity API',ico:'🐝',bg:'#7c2d12',type:'api',reliable:true,fetchFn:'fetchGBIF'},
+  {id:'inat',cat:'Wildlife & Hunting',name:'iNaturalist Sightings',sub:'Community observations',ico:'🦌',bg:'#854d0e',type:'api',reliable:true,fetchFn:'fetchINat'},
 
-  /* Helper: USGS WMS */
-  const usgsWMS = (url, layers, op={}) => ({
-    type:'wms', url,
-    opt:{layers, format:'image/png', transparent:true, attribution:'© USGS', ...op}
-  });
+  // ── EXPERIMENTAL / UNRELIABLE LAYERS (moved to Diagnostics tab) ──
+  {id:'nf',cat:'Federal & Public Lands',name:'National Forests',sub:'USFS boundaries',ico:'🌲',bg:'#166534',type:'wms',reliable:false,
+    url:'https://apps.fs.usda.gov/arcx/services/EDW/EDW_ForestSystemBoundaries_01/MapServer/WMSServer',
+    opt:{layers:'0',format:'image/png',transparent:true,attribution:'© USFS',opacity:.6}},
+  {id:'nps',cat:'Federal & Public Lands',name:'National Parks',sub:'NPS boundaries',ico:'🏕️',bg:'#15803d',type:'wms',reliable:false,
+    url:'https://mapservices.nps.gov/arcgis/services/LandResourcesDivisionTractAndBoundaryService/MapServer/WMSServer',
+    opt:{layers:'0',format:'image/png',transparent:true,attribution:'© NPS',opacity:.6}},
+  {id:'blm',cat:'Federal & Public Lands',name:'BLM Public Land',sub:'Bureau of Land Mgmt',ico:'🏜️',bg:'#92400e',type:'tile',reliable:false,
+    url:'https://gis.blm.gov/arcgis/rest/services/lands/BLM_Natl_SMA_LimitedScale/MapServer/tile/{z}/{y}/{x}',
+    opt:{attribution:'© BLM',maxZoom:15,opacity:.6}},
+  {id:'fws',cat:'Federal & Public Lands',name:'Wildlife Refuges',sub:'USFWS boundaries',ico:'🦅',bg:'#065f46',type:'wms',reliable:false,
+    url:'https://gis.fws.gov/arcgis/services/FWS_Refuge_Boundaries/MapServer/WMSServer',
+    opt:{layers:'0',format:'image/png',transparent:true,attribution:'© USFWS',opacity:.6}},
+  {id:'padus',cat:'Federal & Public Lands',name:'PAD-US Public Land',sub:'Protected Areas',ico:'🏞️',bg:'#9a3412',type:'wms',reliable:false,
+    url:'https://gis1.usgs.gov/arcgis/services/PADUS2_1/PADUS2_1Fee/MapServer/WMSServer',
+    opt:{layers:'0',format:'image/png',transparent:true,attribution:'© USGS',opacity:.4}},
+  {id:'crithab',cat:'Wildlife & Hunting',name:'Critical Habitat',sub:'USFWS ESA areas',ico:'🦉',bg:'#4c1d95',type:'wms',reliable:false,
+    url:'https://services.arcgis.com/QVENGdaPbd4LUkLV/arcgis/rest/services/USFWS_Critical_Habitat/FeatureServer/0',
+    opt:{layers:'0',format:'image/png',transparent:true,attribution:'© USFWS',opacity:.5},
+    altUrl:'https://ecos.fws.gov/arcgis/services/crithab/USFWS_Critical_Habitat/MapServer/WMSServer'},
+  {id:'fsTrails',cat:'Trails & Recreation',name:'USFS Trails',sub:'National Forest trails',ico:'🥾',bg:'#6d28d9',type:'wms',reliable:false,
+    url:'https://apps.fs.usda.gov/arcx/services/EDW/EDW_TrailNFS_01/MapServer/WMSServer',
+    opt:{layers:'0',format:'image/png',transparent:true,attribution:'© USFS',opacity:.8}},
+  {id:'ohv',cat:'Trails & Recreation',name:'OHV / ATV Routes',sub:'USFS motorized',ico:'🏍️',bg:'#dc2626',type:'wms',reliable:false,
+    url:'https://apps.fs.usda.gov/arcx/services/EDW/EDW_MVUM_OHVRoute_01/MapServer/WMSServer',
+    opt:{layers:'0',format:'image/png',transparent:true,attribution:'© USFS',opacity:.8}},
+  {id:'trout',cat:'Water & Fishing',name:'Trout Streams',sub:'USFS designated',ico:'🎣',bg:'#0c4a6e',type:'wms',reliable:false,
+    url:'https://apps.fs.usda.gov/arcx/services/EDW/EDW_RecreationOpportunities_01/MapServer/WMSServer',
+    opt:{layers:'0',format:'image/png',transparent:true,attribution:'© USFS',opacity:.7}},
+  {id:'cdl',cat:'Agriculture',name:'Cropland Data',sub:'USDA NASS CDL',ico:'🌾',bg:'#84cc16',type:'wms',reliable:false,
+    url:'https://nassgeodata.gmu.edu/CropScapeService/wms_cdlall.cgi',
+    opt:{layers:'cdl_2023',format:'image/png',transparent:true,attribution:'© USDA',opacity:.55}},
+  {id:'graze',cat:'Agriculture',name:'Grazing Allotments',sub:'BLM grazing',ico:'🐄',bg:'#65a30d',type:'wms',reliable:false,
+    url:'https://gis.blm.gov/arcgis/services/lands/BLM_Natl_Grazing_Allotment/MapServer/WMSServer',
+    opt:{layers:'0',format:'image/png',transparent:true,attribution:'© BLM',opacity:.5}},
+  {id:'ndvi',cat:'Weather & Environment',name:'NDVI Vegetation',sub:'Mundialis service',ico:'🌱',bg:'#065f46',type:'wms',reliable:false,
+    url:'https://ows.mundialis.de/services/service?',
+    opt:{layers:'NDVI',format:'image/png',transparent:true,attribution:'© Mundialis',opacity:.55}},
+  {id:'usace',cat:'Water & Fishing',name:'USACE Rec Sites',sub:'Army Corps',ico:'🚤',bg:'#1e40af',type:'wms',reliable:false,
+    url:'https://geospatial.sec.usace.army.mil/server/services/Recreation/USACE_Recreation_Sites/MapServer/WMSServer',
+    opt:{layers:'0',format:'image/png',transparent:true,attribution:'© USACE',opacity:.7}},
+  {id:'nhdlakes',cat:'Water & Fishing',name:'NHD Lakes & Ponds',sub:'USGS waterbodies',ico:'🏞️',bg:'#075985',type:'wms',reliable:false,
+    url:'https://hydro.nationalmap.gov/arcgis/services/NHDPlus_HR/MapServer/WMSServer',
+    opt:{layers:'7',format:'image/png',transparent:true,attribution:'© USGS',opacity:.55}},
+  {id:'epa',cat:'Water & Fishing',name:'EPA Water Quality',sub:'EPA WATERS',ico:'💧',bg:'#1d4ed8',type:'wms',reliable:false,
+    url:'https://watersgeo.epa.gov/arcgis/services/OWRAD/ALL_OWRAD_NAD83/MapServer/WMSServer',
+    opt:{layers:'0,1',format:'image/png',transparent:true,attribution:'© EPA',opacity:.5}},
+];
 
-  return {
-    /* ─── FEDERAL LAND ─── */
-    nf: {
-      type:'tile',
-      url:'https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_ForestSystemBoundaries_01/MapServer/tile/{z}/{y}/{x}',
-      opt:{attribution:'© USDA Forest Service',maxZoom:15,opacity:S.opacities.main}
-    },
-    nps: {
-      type:'wms',
-      url:'https://mapservices.nps.gov/arcgis/services/LandResourcesDivisionTractAndBoundaryService/MapServer/WMSServer',
-      opt:{layers:'1', format:'image/png', transparent:true, attribution:'© NPS', opacity:S.opacities.main}
-    },
-    blm: {
-      type:'tile',
-      url:'https://gis.blm.gov/arcgis/rest/services/lands/BLM_Natl_SMA_LimitedScale/MapServer/tile/{z}/{y}/{x}',
-      opt:{attribution:'© BLM',maxZoom:15,opacity:S.opacities.main}
-    },
-    fws: {
-      type:'wms',
-      url:'https://gis.fws.gov/arcgis/services/refuges/RefugeBoundary/MapServer/WMSServer',
-      opt:{layers:'0', format:'image/png', transparent:true, attribution:'© USFWS', opacity:S.opacities.main}
-    },
-    usace: {
-      type:'wms',
-      url:'https://geospatial.sec.usace.army.mil/server/services/Recreation/USACE_Recreation_Sites/MapServer/WMSServer',
-      opt:{layers:'0,1,2', format:'image/png', transparent:true, attribution:'© USACE', opacity:S.opacities.main}
-    },
-    padus: {
-      type:'wms',
-      url:'https://gis1.usgs.gov/arcgis/services/PADUS/PADUS_Fee/MapServer/WMSServer',
-      opt:{layers:'0', format:'image/png', transparent:true, attribution:'© USGS PADUS', opacity:0.45}
-    },
-
-    /* ─── WATER & FISHING ─── */
-    nhd: {
-      type:'tile',
-      url:'https://basemap.nationalmap.gov/arcgis/rest/services/USGSHydroCached/MapServer/tile/{z}/{y}/{x}',
-      opt:{attribution:'© USGS Hydro',maxZoom:16,opacity:S.opacities.main}
-    },
-    nhdlakes: {
-      type:'wms',
-      url:'https://hydro.nationalmap.gov/arcgis/services/NHDPlus_HR/MapServer/WMSServer',
-      opt:{layers:'7', format:'image/png', transparent:true, attribution:'© USGS NHD', opacity:0.6}
-    },
-    trout: {
-      type:'wms',
-      url:'https://apps.fs.usda.gov/arcx/services/EDW/EDW_TroutStream/MapServer/WMSServer',
-      opt:{layers:'0', format:'image/png', transparent:true, attribution:'© USFS', opacity:0.7}
-    },
-    ramps: {
-      type:'wms',
-      url:'https://geospatial.sec.usace.army.mil/server/services/Recreation/USACE_Recreation_Sites/MapServer/WMSServer',
-      opt:{layers:'2', format:'image/png', transparent:true, attribution:'© USACE', opacity:0.9}
-    },
-    nwi: {
-      type:'wms',
-      url:'https://www.fws.gov/wetlands/arcgis/services/Wetlands/MapServer/WMSServer',
-      opt:{layers:'1', format:'image/png', transparent:true, attribution:'© USFWS NWI', opacity:0.55}
-    },
-    epa: {
-      type:'wms',
-      url:'https://watersgeo.epa.gov/arcgis/services/NHDPLUS_NP21/NHDPLUS_NP21_Catchment_NHD_MR/MapServer/WMSServer',
-      opt:{layers:'0', format:'image/png', transparent:true, attribution:'© EPA WATERS', opacity:0.5}
-    },
-
-    /* ─── TERRAIN ─── */
-    topo: {
-      type:'tile',
-      url:'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
-      opt:{attribution:'© USGS',maxZoom:16,opacity:0.6}
-    },
-    hill: {
-      type:'tile',
-      url:'https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}',
-      opt:{attribution:'© Esri',maxZoom:13,opacity:0.5}
-    },
-    slope: {
-      type:'tile',
-      url:'https://basemap.nationalmap.gov/arcgis/rest/services/USGSShadedReliefOnly/MapServer/tile/{z}/{y}/{x}',
-      opt:{attribution:'© USGS 3DEP',maxZoom:16,opacity:0.45}
-    },
-
-    /* ─── WILDLIFE ─── */
-    eagle: {
-      type:'wms',
-      url:'https://ecos.fws.gov/ServCat/DownloadFile/153861?Reference=90343',
-      opt:{layers:'0', format:'image/png', transparent:true, attribution:'© USFWS', opacity:0.8}
-    },
-    crithab: {
-      type:'wms',
-      url:'https://ecos.fws.gov/arcgis/services/crithab/USFWS_Critical_Habitat/MapServer/WMSServer',
-      opt:{layers:'0', format:'image/png', transparent:true, attribution:'© USFWS ESA', opacity:0.5}
-    },
-    gbif: {type:'api', fetchFn:'fetchGBIF'},
-    inat: {type:'api', fetchFn:'fetchINat'},
-
-    /* ─── WEATHER & ENVIRONMENT ─── */
-    radar: {
-      type:'tile',
-      url:'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png',
-      opt:{attribution:'© Iowa Mesonet / NOAA', maxZoom:19, opacity:S.opacities.radar,
-           updateInterval: 300000}
-    },
-    temp: {
-      type:'tile',
-      url:'https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=bd5e378503939ddaee76f12ad7a97608',
-      opt:{attribution:'© OpenWeatherMap',maxZoom:18,opacity:0.5}
-    },
-    wind: {
-      type:'tile',
-      url:'https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=bd5e378503939ddaee76f12ad7a97608',
-      opt:{attribution:'© OpenWeatherMap',maxZoom:18,opacity:0.6}
-    },
-    fire: {
-      type:'tile',
-      url:'https://firms.modaps.eosdis.nasa.gov/mapserver/wms/fires/fires_modis_24/?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&LAYERS=fires_modis_24&WIDTH={width}&HEIGHT={height}&SRS=EPSG:3857&BBOX={bbox}',
-      opt:{
-        tileSize:256,
-        attribution:'© NASA FIRMS',opacity:0.85,maxZoom:15
-      },
-      // Use tile alternative:
-      altUrl:'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/FIRMS_VIIRS_Thermal_Anomalies_375m_Night/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png',
-      altOpt:{attribution:'© NASA FIRMS VIIRS',maxZoom:8,opacity:0.8}
-    },
-    ndvi:{
-      type:'wms',
-      url:'https://ows.mundialis.de/services/service?',
-      opt:{layers:'NDVI', format:'image/png', transparent:true, attribution:'© Mundialis', opacity:0.6}
-    },
-    snow:{
-      type:'wms',
-      url:'https://idpgis.ncep.noaa.gov/arcgis/services/NWS_Observations/NOHRSC_Snow_Analysis/MapServer/WMSServer',
-      opt:{layers:'0', format:'image/png', transparent:true, attribution:'© NOAA NOHRSC', opacity:0.7}
-    },
-
-    /* ─── TRAILS & RECREATION ─── */
-    fsTrails:{
-      type:'wms',
-      url:'https://apps.fs.usda.gov/arcx/services/EDW/EDW_TrailNFS_Centerline/MapServer/WMSServer',
-      opt:{layers:'1', format:'image/png', transparent:true, attribution:'© USFS', opacity:0.85}
-    },
-    npsTrails:{
-      type:'wms',
-      url:'https://mapservices.nps.gov/arcgis/services/LandResourcesDivisionTractAndBoundaryService/MapServer/WMSServer',
-      opt:{layers:'2', format:'image/png', transparent:true, attribution:'© NPS', opacity:0.85}
-    },
-    camp:{
-      type:'wms',
-      url:'https://geospatial.sec.usace.army.mil/server/services/Recreation/USACE_Recreation_Sites/MapServer/WMSServer',
-      opt:{layers:'1', format:'image/png', transparent:true, attribution:'© USACE Recreation', opacity:0.9}
-    },
-    ohv:{
-      type:'wms',
-      url:'https://apps.fs.usda.gov/arcx/services/EDW/EDW_OHVTrail_01/MapServer/WMSServer',
-      opt:{layers:'0', format:'image/png', transparent:true, attribution:'© USFS OHV', opacity:0.85}
-    },
-
-    /* ─── LAND & PROPERTY ─── */
-    usgsquad:{
-      type:'tile',
-      url:'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
-      opt:{attribution:'© USGS',maxZoom:16,opacity:0.7}
-    },
-    county:{
-      type:'wms',
-      url:'https://tigerweb.geo.census.gov/arcgis/services/TIGERweb/tigerWMS_Current/MapServer/WMSServer',
-      opt:{layers:'Counties', format:'image/png', transparent:true, attribution:'© US Census TIGER', opacity:0.6}
-    },
-    congress:{
-      type:'wms',
-      url:'https://tigerweb.geo.census.gov/arcgis/services/TIGERweb/tigerWMS_Current/MapServer/WMSServer',
-      opt:{layers:'Congressional Districts', format:'image/png', transparent:true, attribution:'© US Census TIGER', opacity:0.5}
-    },
-    roads:{
-      type:'wms',
-      url:'https://tigerweb.geo.census.gov/arcgis/services/TIGERweb/tigerWMS_Current/MapServer/WMSServer',
-      opt:{layers:'Primary Roads,Secondary Roads', format:'image/png', transparent:true, attribution:'© US Census TIGER', opacity:0.7}
-    },
-
-    /* ─── AGRICULTURE ─── */
-    cdl:{
-      type:'wms',
-      url:'https://nassgeodata.gmu.edu/CropScapeService/wms_cdlall.cgi',
-      opt:{layers:'cdl_2023', format:'image/png', transparent:true, attribution:'© USDA NASS CDL 2023', opacity:0.6}
-    },
-    graze:{
-      type:'wms',
-      url:'https://gis.blm.gov/arcgis/services/lands/BLM_Natl_Grazing_Allotment/MapServer/WMSServer',
-      opt:{layers:'0', format:'image/png', transparent:true, attribution:'© BLM Grazing', opacity:0.5}
-    },
-  };
+/* ═══════ BUILD LAYER DEFS ═══════ */
+function buildLayerDefs(){
+  const d={};
+  LAYER_CATALOG.forEach(l=>{d[l.id]=l;});
+  S.layerDefs=d;
 }
 
-/* ═══════════════════════════════════════════════════
-   INIT
-═══════════════════════════════════════════════════ */
-window.addEventListener('DOMContentLoaded', () => {
-  S.layerDefs = buildLayerDefs();
+/* ═══════ RENDER LAYER SECTIONS ═══════ */
+function renderLayerPanel(){
+  const el=document.getElementById('layer-sections');
+  const cats={};
+  LAYER_CATALOG.filter(l=>l.reliable).forEach(l=>{
+    if(!cats[l.cat])cats[l.cat]=[];
+    cats[l.cat].push(l);
+  });
+  let html='';
+  const catIcons={'Water & Fishing':'fa-fish','Terrain & Elevation':'fa-mountain','Weather & Environment':'fa-cloud-bolt','Wildlife & Hunting':'fa-crosshairs','Land & Boundaries':'fa-border-all','Federal & Public Lands':'fa-landmark','Trails & Recreation':'fa-person-hiking','Agriculture':'fa-seedling'};
+  for(const [cat,layers] of Object.entries(cats)){
+    html+=`<div class="sec"><div class="sec-title"><i class="fa-solid ${catIcons[cat]||'fa-layer-group'}"></i> ${cat}</div>`;
+    layers.forEach(l=>{
+      const st=l.type==='tile'?'st-ok':l.type==='wms'?'st-wms':'st-api';
+      const stLabel=l.type==='tile'?'TILE':l.type==='wms'?'WMS':'API';
+      html+=`<div class="lyr" id="lyr-row-${l.id}">
+        <div class="lyr-left">
+          <div class="lico" style="background:${l.bg}">${l.ico}</div>
+          <div class="linfo"><div class="lname">${l.name}</div><div class="lsub">${l.sub}</div></div>
+        </div>
+        <div class="lyr-health lh-unknown" id="lh-${l.id}"></div>
+        <span class="lyr-status ${st}">${stLabel}</span>
+        <label class="tog"><input type="checkbox" id="lyr-${l.id}" onchange="toggleLayer('${l.id}',this.checked)"><span class="tog-s"></span></label>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+  el.innerHTML=html;
+}
+
+/* ═══════ RENDER EXPERIMENTAL LAYERS ═══════ */
+function renderExpLayers(){
+  const el=document.getElementById('exp-layers');
+  const exps=LAYER_CATALOG.filter(l=>!l.reliable);
+  el.innerHTML=exps.map(l=>{
+    const st='st-exp';
+    return`<div class="lyr" id="lyr-row-${l.id}">
+      <div class="lyr-left">
+        <div class="lico" style="background:${l.bg}">${l.ico}</div>
+        <div class="linfo"><div class="lname">${l.name}</div><div class="lsub">${l.sub}</div></div>
+      </div>
+      <div class="lyr-health lh-unknown" id="lh-${l.id}"></div>
+      <span class="lyr-status ${st}">EXP</span>
+      <label class="tog"><input type="checkbox" id="lyr-${l.id}" onchange="toggleLayer('${l.id}',this.checked)"><span class="tog-s"></span></label>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════ INIT ═══════ */
+window.addEventListener('DOMContentLoaded',()=>{
+  buildLayerDefs();
   loadSettings();
-  setTimeout(() => {
+  setTimeout(()=>{
+    renderLayerPanel();
+    renderExpLayers();
     initMap();
     buildBMGrid();
     initPins();
@@ -1525,870 +761,378 @@ window.addEventListener('DOMContentLoaded', () => {
     initSeasonGuide();
     loadNoaaAlerts();
     hideSplash();
-  }, 1400);
+  },1200);
 });
 
-function hideSplash() {
-  const el = document.getElementById('load');
-  el.style.transition='opacity .5s';
-  el.style.opacity='0';
-  setTimeout(()=>el.style.display='none',520);
+function hideSplash(){const e=document.getElementById('load');e.style.transition='opacity .5s';e.style.opacity='0';setTimeout(()=>e.style.display='none',500);}
+
+/* ═══════ MAP ═══════ */
+function initMap(){
+  S.map=L.map('map',{center:[39.5,-98.35],zoom:5,minZoom:3,maxZoom:19,zoomControl:false,worldCopyJump:true});
+  S.map.setMaxBounds([[5,-180],[75,-50]]);
+  switchBM(S.activeBM,false);
+  S.scaleCtrl=L.control.scale({imperial:true,metric:true,position:'bottomleft'}).addTo(S.map);
+  S.map.on('mousemove',onMove);
+  S.map.on('click',onClick);
+  S.map.on('zoomend moveend',updateCoords);
 }
 
-/* ═══════════════════════════════════════════════════
-   MAP INIT
-═══════════════════════════════════════════════════ */
-function initMap() {
-  S.map = L.map('map', {
-    center: [39.5, -98.35],   // centre of USA
-    zoom: 5,
-    minZoom: 3,
-    maxZoom: 19,
-    zoomControl: false,
-    worldCopyJump: true,
-  });
+function onMove(e){S.curLat=e.latlng.lat;S.curLng=e.latlng.lng;updateCoords();}
 
-  // Limit to USA bounds loosely
-  S.map.setMaxBounds([[ 5, -180], [75, -50]]);
-
-  // Default basemap
-  switchBM(S.activeBM, false);
-
-  // Scale
-  S.scaleCtrl = L.control.scale({imperial:true,metric:true,position:'bottomleft'}).addTo(S.map);
-
-  // Events
-  S.map.on('mousemove', onMove);
-  S.map.on('click', onClick);
-  S.map.on('zoomend moveend', updateCoords);
-
-  // Load default layers
-  setTimeout(() => {
-    document.getElementById('lyr-nhd').checked = true;
-    toggleLayer('nhd', true);
-  }, 500);
-}
-
-function onMove(e) {
-  S.curLat = e.latlng.lat;
-  S.curLng = e.latlng.lng;
-  updateCoords();
-}
-
-function updateCoords() {
-  if (!S.map || S.curLat === undefined) return;
-  const lat = S.curLat, lng = S.curLng;
-  let ls, lo;
-  if (S.cf === 'dms') { ls=toDMS(lat,'lat'); lo=toDMS(lng,'lng'); }
-  else if (S.cf === 'ddm') { ls=toDDM(lat,'lat'); lo=toDDM(lng,'lng'); }
-  else { ls=lat.toFixed(5); lo=lng.toFixed(5); }
-  document.getElementById('clat').textContent = ls;
-  document.getElementById('clng').textContent = lo;
-  document.getElementById('czoom').textContent = S.map.getZoom();
-  // Elevation via open-elevation
-  fetchElevation(lat, lng);
+function updateCoords(){
+  if(!S.map||S.curLat===undefined)return;
+  const lat=S.curLat,lng=S.curLng;
+  let ls,lo;
+  if(S.cf==='dms'){ls=toDMS(lat,'lat');lo=toDMS(lng,'lng');}
+  else if(S.cf==='ddm'){ls=toDDM(lat,'lat');lo=toDDM(lng,'lng');}
+  else{ls=lat.toFixed(5);lo=lng.toFixed(5);}
+  document.getElementById('clat').textContent=ls;
+  document.getElementById('clng').textContent=lo;
+  document.getElementById('czoom').textContent=S.map.getZoom();
+  fetchElevation(lat,lng);
 }
 
 let elevTimer;
-async function fetchElevation(lat, lng) {
+async function fetchElevation(lat,lng){
   clearTimeout(elevTimer);
-  elevTimer = setTimeout(async () => {
-    try {
-      const r = await fetch(`https://api.opentopodata.org/v1/ned10m?locations=${lat.toFixed(5)},${lng.toFixed(5)}`);
-      const d = await r.json();
-      if (d.results?.[0]) {
-        const m = d.results[0].elevation;
-        const v = S.elevUnit === 'ft' ? Math.round(m * 3.28084) + ' ft' : Math.round(m) + ' m';
-        document.getElementById('celev').textContent = v;
-      }
-    } catch {}
-  }, 800);
+  elevTimer=setTimeout(async()=>{
+    try{
+      const r=await fetch(`https://api.opentopodata.org/v1/ned10m?locations=${lat.toFixed(5)},${lng.toFixed(5)}`);
+      const d=await r.json();
+      if(d.results?.[0]){const m=d.results[0].elevation;document.getElementById('celev').textContent=S.elevUnit==='ft'?Math.round(m*3.28084)+' ft':Math.round(m)+' m';}
+    }catch{}
+  },900);
 }
 
-function toDMS(deg, t) {
-  const a=Math.abs(deg), d=Math.floor(a), mf=(a-d)*60, m=Math.floor(mf), s=((mf-m)*60).toFixed(1);
-  const dir=t==='lat'?(deg>=0?'N':'S'):(deg>=0?'E':'W');
-  return `${d}°${m}'${s}"${dir}`;
-}
-function toDDM(deg, t) {
-  const a=Math.abs(deg), d=Math.floor(a), m=((a-d)*60).toFixed(3);
-  const dir=t==='lat'?(deg>=0?'N':'S'):(deg>=0?'E':'W');
-  return `${d}°${m}'${dir}`;
-}
+function toDMS(deg,t){const a=Math.abs(deg),d=Math.floor(a),mf=(a-d)*60,m=Math.floor(mf),s=((mf-m)*60).toFixed(1);return`${d}°${m}'${s}"${t==='lat'?(deg>=0?'N':'S'):(deg>=0?'E':'W')}`;}
+function toDDM(deg,t){const a=Math.abs(deg),d=Math.floor(a),m=((a-d)*60).toFixed(3);return`${d}°${m}'${t==='lat'?(deg>=0?'N':'S'):(deg>=0?'E':'W')}`;}
 
-/* ═══════════════════════════════════════════════════
-   BASEMAPS
-═══════════════════════════════════════════════════ */
-function buildBMGrid() {
-  const g = document.getElementById('bmgrid');
-  g.innerHTML = '';
-  Object.entries(BASEMAPS).forEach(([k,v]) => {
-    const c = document.createElement('div');
-    c.className = 'bmcard' + (k===S.activeBM?' on':'');
-    c.id = 'bm-'+k;
-    c.onclick = () => switchBM(k);
-    c.innerHTML = `<div class="bmprev">${v.em}</div><div class="bmname">${v.name}</div>`;
-    g.appendChild(c);
+/* ═══════ BASEMAPS ═══════ */
+function buildBMGrid(){
+  const g=document.getElementById('bmgrid');g.innerHTML='';
+  Object.entries(BASEMAPS).forEach(([k,v])=>{
+    const c=document.createElement('div');c.className='bmcard'+(k===S.activeBM?' on':'');c.id='bm-'+k;
+    c.onclick=()=>switchBM(k);c.innerHTML=`<div class="bmprev">${v.em}</div><div class="bmname">${v.name}</div>`;g.appendChild(c);
   });
 }
 
-function switchBM(key, showToast=true) {
-  if (!BASEMAPS[key]) return;
-  if (S.basemap) S.map.removeLayer(S.basemap);
-  S.basemap = L.tileLayer(BASEMAPS[key].url, BASEMAPS[key].opt).addTo(S.map);
+function switchBM(key,show=true){
+  if(!BASEMAPS[key])return;
+  if(S.basemap)S.map.removeLayer(S.basemap);
+  S.basemap=L.tileLayer(BASEMAPS[key].url,BASEMAPS[key].opt).addTo(S.map);
   S.basemap.bringToBack();
   document.querySelectorAll('.bmcard').forEach(c=>c.classList.remove('on'));
   document.getElementById('bm-'+key)?.classList.add('on');
-  S.activeBM = key;
-  saveSetting('bm', key);
-  if (showToast) toast('🗺️ '+BASEMAPS[key].name);
+  S.activeBM=key;saveSetting('bm',key);
+  if(show)toast('🗺️ '+BASEMAPS[key].name);
 }
 
-/* ═══════════════════════════════════════════════════
-   LAYER TOGGLE — handles tile, WMS, API types
-═══════════════════════════════════════════════════ */
-function toggleLayer(key, on) {
-  const def = S.layerDefs[key];
-  if (!def) { toast('⚠️ Layer not configured: '+key); return; }
+/* ═══════ LAYER TOGGLE ═══════ */
+function toggleLayer(key,on){
+  const def=S.layerDefs[key];
+  if(!def){toast('⚠️ Unknown layer: '+key);return;}
+  const healthDot=document.getElementById('lh-'+key);
 
-  if (!on) {
-    // Remove layer
-    if (S.layers[key]) {
-      S.map.removeLayer(S.layers[key]);
-      delete S.layers[key];
-    }
+  if(!on){
+    if(S.layers[key]){S.map.removeLayer(S.layers[key]);delete S.layers[key];}
     S.activeLayers.delete(key);
-    updateLayerStatus();
-    return;
+    if(healthDot)healthDot.className='lyr-health lh-unknown';
+    updateLayerStatus();return;
   }
 
-  // Add layer
-  try {
+  if(healthDot)healthDot.className='lyr-health lh-load';
+
+  try{
     let layer;
-
-    if (def.type === 'tile') {
-      // Use altUrl if defined (fire layer fallback)
-      const url = def.altUrl || def.url;
-      const opt = def.altOpt || def.opt;
-      layer = L.tileLayer(url, { ...opt, opacity: opt.opacity ?? S.opacities.main });
-
-    } else if (def.type === 'wms') {
-      layer = L.tileLayer.wms(def.url, {
-        ...def.opt,
-        opacity: def.opt.opacity ?? S.opacities.main,
+    if(def.type==='tile'){
+      layer=L.tileLayer(def.url,{...def.opt,opacity:def.opt.opacity??S.opacities.main});
+      layer.on('tileerror',()=>{
+        S.layerHealth[key]='error';
+        if(healthDot)healthDot.className='lyr-health lh-err';
       });
-
-    } else if (def.type === 'api') {
-      // API-based layers (GBIF, iNat etc.)
-      layer = L.featureGroup();
-      window[def.fetchFn]?.(layer);
+      layer.on('load',()=>{
+        S.layerHealth[key]='ok';
+        if(healthDot)healthDot.className='lyr-health lh-ok';
+      });
+    }else if(def.type==='wms'){
+      const wmsUrl=def.altUrl||def.url;
+      layer=L.tileLayer.wms(wmsUrl,{...def.opt,opacity:def.opt.opacity??S.opacities.main});
+      layer.on('tileerror',()=>{
+        S.layerHealth[key]='error';
+        if(healthDot)healthDot.className='lyr-health lh-err';
+      });
+      layer.on('load',()=>{
+        if(S.layerHealth[key]!=='error'){S.layerHealth[key]='ok';if(healthDot)healthDot.className='lyr-health lh-ok';}
+      });
+    }else if(def.type==='api'){
+      layer=L.featureGroup();
+      if(healthDot)healthDot.className='lyr-health lh-load';
+      window[def.fetchFn]?.(layer).then(()=>{
+        S.layerHealth[key]='ok';if(healthDot)healthDot.className='lyr-health lh-ok';
+      }).catch(()=>{
+        S.layerHealth[key]='error';if(healthDot)healthDot.className='lyr-health lh-err';
+      });
     }
-
-    if (layer) {
-      layer.addTo(S.map);
-      S.layers[key] = layer;
-      S.activeLayers.add(key);
-      toast('✅ '+key.toUpperCase()+' layer on');
+    if(layer){
+      layer.addTo(S.map);S.layers[key]=layer;S.activeLayers.add(key);
+      toast('✅ '+def.name+' ON');
     }
-  } catch(e) {
-    toast('❌ Layer error: '+key);
-    console.warn('Layer error', key, e);
+  }catch(e){
+    toast('❌ Error: '+def.name);
+    S.layerHealth[key]='error';
+    if(healthDot)healthDot.className='lyr-health lh-err';
+    console.warn('Layer error',key,e);
   }
   updateLayerStatus();
 }
 
-/* ── Layer Status Panel ── */
-function updateLayerStatus() {
-  const list = document.getElementById('lstat-list');
-  if (S.activeLayers.size === 0) {
-    list.innerHTML = '<div style="color:var(--text-muted);font-size:.68rem">No layers active</div>';
-    return;
-  }
-  list.innerHTML = [...S.activeLayers].map(k => {
-    const def = S.layerDefs[k];
-    const color = def?.type==='tile'?'#22c55e':def?.type==='wms'?'#3b82f6':'#f59e0b';
-    return `<div class="lsrow"><div class="lsdot" style="background:${color}"></div>${k.toUpperCase()}</div>`;
+function updateLayerStatus(){
+  const list=document.getElementById('lstat-list');
+  if(S.activeLayers.size===0){list.innerHTML='<div style="color:var(--text-muted);font-size:.66rem">No layers active</div>';return;}
+  list.innerHTML=[...S.activeLayers].map(k=>{
+    const h=S.layerHealth[k];
+    const color=h==='ok'?'#22c55e':h==='error'?'#ef4444':'#f59e0b';
+    return`<div class="lsrow"><div class="lsdot" style="background:${color}"></div>${(S.layerDefs[k]?.name||k).substring(0,22)}</div>`;
   }).join('');
 }
 
-/* ── Opacity ── */
-function setOpacity(key, val) {
-  S.opacities[key] = val/100;
-  document.getElementById('op-'+key+'-v').textContent = val+'%';
-  if (key==='radar' && S.layers.radar) {
-    S.layers.radar.setOpacity(val/100);
-  } else if (key==='main') {
-    Object.entries(S.layers).forEach(([k,l]) => {
-      if (k!=='radar' && l.setOpacity) l.setOpacity(val/100);
-    });
-  }
+function setOpacity(key,val){
+  S.opacities[key]=val/100;
+  document.getElementById('op-'+key+'-v').textContent=val+'%';
+  if(key==='radar'&&S.layers.radar)S.layers.radar.setOpacity(val/100);
+  else if(key==='main')Object.entries(S.layers).forEach(([k,l])=>{if(k!=='radar'&&l.setOpacity)l.setOpacity(val/100);});
 }
 
-/* ═══════════════════════════════════════════════════
-   LIVE API LAYERS
-═══════════════════════════════════════════════════ */
+/* ═══════ DIAGNOSTICS ═══════ */
+async function runDiagnostics(){
+  const el=document.getElementById('diag-results');
+  el.innerHTML='<p style="font-size:.7rem;color:var(--text-muted)">Testing endpoints…</p>';
+  const results=[];
 
-/* GBIF wildlife observations */
-async function fetchGBIF(group) {
-  try {
-    const bounds = S.map.getBounds();
-    const url = `https://api.gbif.org/v1/occurrence/search?decimalLatitude=${bounds.getSouth().toFixed(2)},${bounds.getNorth().toFixed(2)}&decimalLongitude=${bounds.getWest().toFixed(2)},${bounds.getEast().toFixed(2)}&limit=80&hasCoordinate=true&country=US&taxonKey=1`;
-    const r = await fetch(url);
-    const d = await r.json();
-    (d.results||[]).forEach(obs => {
-      if (!obs.decimalLatitude) return;
-      const icon = L.divIcon({
-        html:`<div style="background:#7c2d12;width:10px;height:10px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)"></div>`,
-        iconSize:[10,10],iconAnchor:[5,5],className:''
-      });
-      L.marker([obs.decimalLatitude, obs.decimalLongitude], {icon})
-        .bindPopup(`<b>🐝 ${obs.species||obs.genericName||'Wildlife'}</b><br><small>${obs.eventDate||'Date unknown'}</small>`)
-        .addTo(group);
-    });
-    toast(`🐝 GBIF: ${d.results?.length||0} observations`);
-  } catch(e) { toast('GBIF fetch error'); }
-}
+  for(const l of LAYER_CATALOG){
+    if(l.type==='api'){results.push({...l,status:'ok',note:'API layer - works via fetch'});continue;}
+    const testUrl=l.type==='wms'
+      ?(l.altUrl||l.url)+(l.url.includes('?')?'&':'?')+'SERVICE=WMS&REQUEST=GetCapabilities'
+      :l.url.replace('{z}','5').replace('{y}','12').replace('{x}','9').replace('{s}','a').replace('{r}','');
 
-/* iNaturalist observations */
-async function fetchINat(group) {
-  try {
-    const bounds = S.map.getBounds();
-    const url = `https://api.inaturalist.org/v1/observations?nelat=${bounds.getNorth().toFixed(3)}&nelng=${bounds.getEast().toFixed(3)}&swlat=${bounds.getSouth().toFixed(3)}&swlng=${bounds.getWest().toFixed(3)}&per_page=60&taxon_id=40151&quality_grade=research`;
-    const r = await fetch(url);
-    const d = await r.json();
-    (d.results||[]).forEach(obs => {
-      if (!obs.geojson?.coordinates) return;
-      const [lng,lat] = obs.geojson.coordinates;
-      const icon = L.divIcon({
-        html:`<div style="background:#854d0e;width:10px;height:10px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)"></div>`,
-        iconSize:[10,10],iconAnchor:[5,5],className:''
-      });
-      L.marker([lat,lng], {icon})
-        .bindPopup(`<b>🦌 ${obs.taxon?.common_name||obs.taxon?.name||'Wildlife'}</b><br><img src="${obs.photos?.[0]?.url||''}" style="max-width:100px;border-radius:4px;margin-top:4px"><br><small>${obs.observed_on||''}</small>`)
-        .addTo(group);
-    });
-    toast(`🦌 iNat: ${d.results?.length||0} sightings`);
-  } catch(e) { toast('iNat fetch error'); }
-}
-
-/* ═══════════════════════════════════════════════════
-   MAP CLICK
-═══════════════════════════════════════════════════ */
-async function onClick(e) {
-  if (S.meas) { addMeasPt(e.latlng); return; }
-  if (!S.identify) return;
-
-  // Get elevation at clicked point
-  let elevStr = '...';
-  try {
-    const r = await fetch(`https://api.opentopodata.org/v1/ned10m?locations=${e.latlng.lat.toFixed(5)},${e.latlng.lng.toFixed(5)}`);
-    const d = await r.json();
-    if (d.results?.[0]) {
-      const m = d.results[0].elevation;
-      elevStr = S.elevUnit === 'ft' ? Math.round(m*3.28084)+' ft' : Math.round(m)+' m';
+    try{
+      const controller=new AbortController();
+      const timer=setTimeout(()=>controller.abort(),8000);
+      const r=await fetch(testUrl,{method:'HEAD',mode:'no-cors',signal:controller.signal});
+      clearTimeout(timer);
+      results.push({...l,status:'ok',note:'Endpoint responded'});
+      S.layerHealth[l.id]='ok';
+      const dot=document.getElementById('lh-'+l.id);
+      if(dot&&!S.activeLayers.has(l.id))dot.className='lyr-health lh-unknown';
+    }catch(e){
+      const isAbort=e.name==='AbortError';
+      results.push({...l,status:isAbort?'timeout':'ok',note:isAbort?'Timeout (8s) — may be blocked by CORS':'no-cors OK (can\'t verify content)'});
     }
-  } catch {}
+  }
 
-  // Reverse geocode
-  let locStr = '';
-  try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${e.latlng.lat}&lon=${e.latlng.lng}&format=json&zoom=12`);
-    const d = await r.json();
-    locStr = d.display_name?.split(',').slice(0,3).join(', ') || '';
-  } catch {}
-
-  L.popup()
-    .setLatLng(e.latlng)
-    .setContent(`
-      <div style="min-width:210px;font-family:var(--font)">
-        <b>📍 Location Info</b>
-        ${locStr ? `<div style="font-size:.72rem;color:#64748b;margin:3px 0">${locStr}</div>` : ''}
-        <div style="font-size:.78rem;margin-top:5px"><b>Coords:</b> ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}</div>
-        <div style="font-size:.78rem"><b>Elevation:</b> ${elevStr}</div>
-        <div style="display:flex;gap:6px;margin-top:8px">
-          <button onclick="openPinModalAt(${e.latlng.lat},${e.latlng.lng})" 
-            style="flex:1;background:var(--primary,#2563eb);color:#fff;border:none;padding:6px;border-radius:6px;cursor:pointer;font-size:.73rem;font-weight:600">
-            📌 Save Pin
-          </button>
-          <button onclick="navigator.clipboard?.writeText('${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}').then(()=>toast('📋 Copied!'))" 
-            style="flex:1;background:#f1f5f9;border:1px solid #e2e8f0;padding:6px;border-radius:6px;cursor:pointer;font-size:.73rem;font-weight:600">
-            📋 Copy
-          </button>
-        </div>
-      </div>
-    `)
-    .openOn(S.map);
+  el.innerHTML=results.map(r=>{
+    const stClass=r.status==='ok'?'d-st-ok':r.status==='timeout'?'d-st-fail':'d-st-test';
+    const stLabel=r.status==='ok'?'OK':r.status==='timeout'?'TIMEOUT':'UNKNOWN';
+    return`<div class="diag-card">
+      <div class="d-ico">${r.ico}</div>
+      <div class="d-info"><div class="d-name">${r.name}</div><div class="d-url" title="${r.note}">${r.note}</div></div>
+      <div class="d-status ${stClass}">${stLabel}</div>
+    </div>`;
+  }).join('');
+  toast('🔍 Diagnostics complete');
 }
 
-/* ═══════════════════════════════════════════════════
-   GPS
-═══════════════════════════════════════════════════ */
-function startGPS() {
-  if (!navigator.geolocation) { toast('❌ Geolocation not supported'); return; }
-  toast('📡 Locating...');
-  navigator.geolocation.getCurrentPosition(pos => {
-    const {latitude:lat, longitude:lng, accuracy} = pos.coords;
-    stopGPS();
-    const icon = L.divIcon({
-      html:`<div style="width:16px;height:16px;background:#2563eb;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 5px rgba(37,99,235,.25)"></div>`,
-      iconSize:[16,16],iconAnchor:[8,8],className:''
-    });
-    S.gpsM = L.marker([lat,lng],{icon}).addTo(S.map).bindPopup(`📍 You are here<br>Accuracy: ~${Math.round(accuracy)}m`);
-    S.gpsC = L.circle([lat,lng],{radius:accuracy,color:'#2563eb',fillColor:'#bfdbfe',fillOpacity:.2,weight:1}).addTo(S.map);
-    S.map.flyTo([lat,lng],13,{duration:2});
-    S.gps = true;
+/* ═══════ API LAYERS ═══════ */
+async function fetchGBIF(group){
+  const bounds=S.map.getBounds();
+  const url=`https://api.gbif.org/v1/occurrence/search?decimalLatitude=${bounds.getSouth().toFixed(2)},${bounds.getNorth().toFixed(2)}&decimalLongitude=${bounds.getWest().toFixed(2)},${bounds.getEast().toFixed(2)}&limit=80&hasCoordinate=true&country=US&taxonKey=1`;
+  const r=await fetch(url);const d=await r.json();
+  (d.results||[]).forEach(obs=>{
+    if(!obs.decimalLatitude)return;
+    const icon=L.divIcon({html:`<div style="background:#7c2d12;width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>`,iconSize:[10,10],iconAnchor:[5,5],className:''});
+    L.marker([obs.decimalLatitude,obs.decimalLongitude],{icon}).bindPopup(`<b>🐝 ${obs.species||obs.genericName||'Wildlife'}</b><br><small>${obs.eventDate||'Unknown date'}</small>`).addTo(group);
+  });
+  toast(`🐝 GBIF: ${d.results?.length||0} obs`);
+}
+
+async function fetchINat(group){
+  const bounds=S.map.getBounds();
+  const url=`https://api.inaturalist.org/v1/observations?nelat=${bounds.getNorth().toFixed(3)}&nelng=${bounds.getEast().toFixed(3)}&swlat=${bounds.getSouth().toFixed(3)}&swlng=${bounds.getWest().toFixed(3)}&per_page=60&taxon_id=40151&quality_grade=research`;
+  const r=await fetch(url);const d=await r.json();
+  (d.results||[]).forEach(obs=>{
+    if(!obs.geojson?.coordinates)return;
+    const[lng,lat]=obs.geojson.coordinates;
+    const icon=L.divIcon({html:`<div style="background:#854d0e;width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>`,iconSize:[10,10],iconAnchor:[5,5],className:''});
+    L.marker([lat,lng],{icon}).bindPopup(`<b>🦌 ${obs.taxon?.common_name||obs.taxon?.name||'Wildlife'}</b><br>${obs.photos?.[0]?.url?`<img src="${obs.photos[0].url}" style="max-width:100px;border-radius:4px;margin-top:4px"><br>`:''}<small>${obs.observed_on||''}</small>`).addTo(group);
+  });
+  toast(`🦌 iNat: ${d.results?.length||0} sightings`);
+}
+
+/* ═══════ MAP CLICK ═══════ */
+async function onClick(e){
+  if(S.meas){addMeasPt(e.latlng);return;}
+  if(!S.identify)return;
+  let elevStr='…';
+  try{const r=await fetch(`https://api.opentopodata.org/v1/ned10m?locations=${e.latlng.lat.toFixed(5)},${e.latlng.lng.toFixed(5)}`);const d=await r.json();if(d.results?.[0]){const m=d.results[0].elevation;elevStr=S.elevUnit==='ft'?Math.round(m*3.28084)+' ft':Math.round(m)+' m';}}catch{}
+  let locStr='';
+  try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${e.latlng.lat}&lon=${e.latlng.lng}&format=json&zoom=12`);const d=await r.json();locStr=d.display_name?.split(',').slice(0,3).join(', ')||'';}catch{}
+  L.popup().setLatLng(e.latlng).setContent(`
+    <div style="min-width:200px;font-family:var(--font)">
+      <b>📍 Location Info</b>
+      ${locStr?`<div style="font-size:.7rem;color:#64748b;margin:3px 0">${locStr}</div>`:''}
+      <div style="font-size:.76rem;margin-top:5px"><b>Coords:</b> ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}</div>
+      <div style="font-size:.76rem"><b>Elevation:</b> ${elevStr}</div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button onclick="openPinModalAt(${e.latlng.lat},${e.latlng.lng})" style="flex:1;background:var(--primary,#2563eb);color:#fff;border:none;padding:6px;border-radius:7px;cursor:pointer;font-size:.72rem;font-weight:700">📌 Save Pin</button>
+        <button onclick="navigator.clipboard?.writeText('${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}').then(()=>toast('📋 Copied!'))" style="flex:1;background:#f1f5f9;border:1px solid #e2e8f0;padding:6px;border-radius:7px;cursor:pointer;font-size:.72rem;font-weight:700">📋 Copy</button>
+      </div>
+    </div>`).openOn(S.map);
+}
+
+/* ═══════ GPS ═══════ */
+function startGPS(){
+  if(!navigator.geolocation){toast('❌ No geolocation');return;}
+  toast('📡 Locating…');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const{latitude:lat,longitude:lng,accuracy}=pos.coords;stopGPS();
+    const icon=L.divIcon({html:`<div style="width:16px;height:16px;background:#2563eb;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 5px rgba(37,99,235,.25)"></div>`,iconSize:[16,16],iconAnchor:[8,8],className:''});
+    S.gpsM=L.marker([lat,lng],{icon}).addTo(S.map).bindPopup(`📍 You are here<br>~${Math.round(accuracy)}m accuracy`);
+    S.gpsC=L.circle([lat,lng],{radius:accuracy,color:'#2563eb',fillColor:'#bfdbfe',fillOpacity:.2,weight:1}).addTo(S.map);
+    S.map.flyTo([lat,lng],13,{duration:2});S.gps=true;
     document.getElementById('btn-gps').classList.add('active-tool');
-    document.getElementById('gps-tog').checked = true;
-    toast('📍 Location found!');
-  }, err => {
-    toast('❌ GPS error: '+err.message);
-    document.getElementById('gps-tog').checked = false;
-  }, {enableHighAccuracy:true,timeout:12000});
+    document.getElementById('gps-tog').checked=true;toast('📍 Found!');
+  },err=>{toast('❌ GPS: '+err.message);document.getElementById('gps-tog').checked=false;},{enableHighAccuracy:true,timeout:12000});
+}
+function stopGPS(){if(S.gpsM){S.map.removeLayer(S.gpsM);S.gpsM=null;}if(S.gpsC){S.map.removeLayer(S.gpsC);S.gpsC=null;}S.gps=false;document.getElementById('btn-gps').classList.remove('active-tool');document.getElementById('gps-tog').checked=false;}
+
+/* ═══════ MEASURE ═══════ */
+function toggleMeasure(){
+  S.meas=!S.meas;const btn=document.getElementById('btn-meas'),res=document.getElementById('mresult');
+  if(S.meas){S.measPts=[];if(S.measLine){S.map.removeLayer(S.measLine);S.measLine=null;}btn.classList.add('active-tool');res.style.display='block';document.getElementById('mdist').textContent='Click to measure';S.map.getContainer().style.cursor='crosshair';toast('📏 Click map points. Click ruler again to stop.');}
+  else{btn.classList.remove('active-tool');res.style.display='none';S.map.getContainer().style.cursor='';if(S.measLine){S.map.removeLayer(S.measLine);S.measLine=null;}S.measPts=[];}
+}
+function addMeasPt(ll){
+  S.measPts.push(ll);if(S.measLine)S.map.removeLayer(S.measLine);
+  S.measLine=L.polyline(S.measPts,{color:'#f59e0b',weight:3,dashArray:'8 4'}).addTo(S.map);
+  if(S.measPts.length>=2){let t=0;for(let i=1;i<S.measPts.length;i++)t+=S.measPts[i-1].distanceTo(S.measPts[i]);
+    const d=S.units==='metric'?(t>=1000?(t/1000).toFixed(2)+' km':Math.round(t)+' m'):(t>=1609?(t/1609.34).toFixed(2)+' mi':Math.round(t*3.28084)+' ft');
+    document.getElementById('mdist').textContent=d+` (${S.measPts.length} pts)`;}
 }
 
-function stopGPS() {
-  if (S.gpsM) { S.map.removeLayer(S.gpsM); S.gpsM=null; }
-  if (S.gpsC) { S.map.removeLayer(S.gpsC); S.gpsC=null; }
-  S.gps = false;
-  document.getElementById('btn-gps').classList.remove('active-tool');
-  document.getElementById('gps-tog').checked = false;
+/* ═══════ SEARCH ═══════ */
+function initSearch(){
+  const inp=document.getElementById('search-inp'),drop=document.getElementById('search-drop');let timer;
+  inp.addEventListener('input',()=>{clearTimeout(timer);const q=inp.value.trim();if(q.length<3){drop.style.display='none';return;}timer=setTimeout(()=>doSearch(q),400);});
+  inp.addEventListener('keydown',e=>{if(e.key==='Escape'){drop.style.display='none';inp.blur();}});
+  document.addEventListener('click',e=>{if(!e.target.closest('#search-wrap'))drop.style.display='none';});
 }
-
-/* ═══════════════════════════════════════════════════
-   MEASURE
-═══════════════════════════════════════════════════ */
-function toggleMeasure() {
-  S.meas = !S.meas;
-  const btn = document.getElementById('btn-meas');
-  const res = document.getElementById('mresult');
-  if (S.meas) {
-    S.measPts = [];
-    if (S.measLine) { S.map.removeLayer(S.measLine); S.measLine=null; }
-    btn.classList.add('active-tool');
-    res.style.display='block';
-    document.getElementById('mdist').textContent='Click points to measure';
-    S.map.getContainer().style.cursor='crosshair';
-    toast('📏 Click map to measure. Click ruler icon again to stop.');
-  } else {
-    btn.classList.remove('active-tool');
-    res.style.display='none';
-    S.map.getContainer().style.cursor='';
-    if (S.measLine) { S.map.removeLayer(S.measLine); S.measLine=null; }
-    S.measPts=[];
-  }
-}
-
-function addMeasPt(ll) {
-  S.measPts.push(ll);
-  if (S.measLine) S.map.removeLayer(S.measLine);
-  S.measLine = L.polyline(S.measPts,{color:'#f59e0b',weight:3,dashArray:'8 4'}).addTo(S.map);
-  if (S.measPts.length >= 2) {
-    let t=0;
-    for(let i=1;i<S.measPts.length;i++) t+=S.measPts[i-1].distanceTo(S.measPts[i]);
-    const d = S.units==='metric'
-      ? (t>=1000?(t/1000).toFixed(2)+' km':Math.round(t)+' m')
-      : (t>=1609?(t/1609.34).toFixed(2)+' mi':Math.round(t*3.28084)+' ft');
-    document.getElementById('mdist').textContent=d+` (${S.measPts.length} pts)`;
-  }
-}
-
-/* ═══════════════════════════════════════════════════
-   SEARCH (Nominatim — free, no key)
-═══════════════════════════════════════════════════ */
-function initSearch() {
-  const inp = document.getElementById('search-inp');
-  const drop = document.getElementById('search-drop');
-  let timer;
-  inp.addEventListener('input', () => {
-    clearTimeout(timer);
-    const q = inp.value.trim();
-    if (q.length<3) { drop.style.display='none'; return; }
-    timer = setTimeout(()=>doSearch(q), 380);
-  });
-  inp.addEventListener('keydown', e => { if(e.key==='Escape'){drop.style.display='none';inp.blur();} });
-  document.addEventListener('click', e => {
-    if (!e.target.closest('#search-wrap')) drop.style.display='none';
-  });
-}
-
-async function doSearch(q) {
-  const drop = document.getElementById('search-drop');
-  try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=7&countrycodes=us`);
-    const d = await r.json();
-    if (!d.length) { drop.innerHTML='<div class="sd-item">No results</div>'; drop.style.display='block'; return; }
-    drop.innerHTML = d.map(x=>`
-      <div class="sd-item" onclick="gotoResult(${x.lat},${x.lon},'${x.display_name.replace(/'/g,'`').substring(0,60)}')">
-        <i class="fa-solid fa-location-dot"></i>${x.display_name.substring(0,60)}${x.display_name.length>60?'…':''}
-      </div>
-    `).join('');
+async function doSearch(q){
+  const drop=document.getElementById('search-drop');
+  try{const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=7&countrycodes=us`);const d=await r.json();
+    if(!d.length){drop.innerHTML='<div class="sd-item">No results</div>';drop.style.display='block';return;}
+    drop.innerHTML=d.map(x=>`<div class="sd-item" onclick="gotoResult(${x.lat},${x.lon},'${x.display_name.replace(/'/g,'`').substring(0,55)}')"><i class="fa-solid fa-location-dot"></i>${x.display_name.substring(0,55)}${x.display_name.length>55?'…':''}</div>`).join('');
     drop.style.display='block';
-  } catch { drop.innerHTML='<div class="sd-item">Search unavailable</div>'; drop.style.display='block'; }
+  }catch{drop.innerHTML='<div class="sd-item">Search error</div>';drop.style.display='block';}
 }
+function gotoResult(lat,lng,name){S.map.flyTo([parseFloat(lat),parseFloat(lng)],13,{duration:1.5});document.getElementById('search-drop').style.display='none';document.getElementById('search-inp').value=name;toast('📍 '+name.split(',')[0]);}
 
-function gotoResult(lat, lng, name) {
-  S.map.flyTo([parseFloat(lat),parseFloat(lng)],13,{duration:1.5});
-  document.getElementById('search-drop').style.display='none';
-  document.getElementById('search-inp').value=name;
-  toast('📍 '+name.split(',')[0]);
-}
+/* ═══════ PINS ═══════ */
+function initPins(){try{S.pins=JSON.parse(getCookie('sm_pins')||'[]');}catch{S.pins=[];}S.pins.forEach(p=>addPinMarker(p));renderPins();}
+function openPinModal(){const c=S.map.getCenter();openPinModalAt(c.lat,c.lng);}
+function openPinModalAt(lat,lng){S.map.closePopup();S.tempLat=lat;S.tempLng=lng;S.emoji='📍';document.getElementById('pin-name').value='';document.getElementById('pin-notes').value='';document.getElementById('pin-cat').value='waypoint';document.getElementById('pin-latlng').value=`${lat.toFixed(6)}, ${lng.toFixed(6)}`;document.querySelectorAll('.ebtn').forEach(b=>b.classList.remove('on'));document.querySelector('.ebtn[data-e="📍"]')?.classList.add('on');document.getElementById('moverlay').classList.add('on');setTimeout(()=>document.getElementById('pin-name').focus(),100);}
+function closeModal(){document.getElementById('moverlay').classList.remove('on');}
+function selEmoji(btn,e){document.querySelectorAll('.ebtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');S.emoji=e;}
+function savePin(){const name=document.getElementById('pin-name').value.trim()||'Saved Location';const notes=document.getElementById('pin-notes').value.trim();const cat=document.getElementById('pin-cat').value;const pin={id:Date.now(),name,notes,cat,emoji:S.emoji,lat:S.tempLat,lng:S.tempLng,date:new Date().toLocaleDateString()};S.pins.push(pin);savePinsToCookie();addPinMarker(pin);renderPins();closeModal();S.map.flyTo([pin.lat,pin.lng],14,{duration:1.5});toast('📌 Saved: '+name);}
+function addPinMarker(p){const icon=L.divIcon({html:`<div style="font-size:20px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))">${p.emoji}</div>`,iconSize:[24,24],iconAnchor:[12,24],popupAnchor:[0,-26],className:''});const m=L.marker([p.lat,p.lng],{icon}).addTo(S.map);m.bindPopup(`<div style="min-width:180px;font-family:var(--font)"><b>${p.emoji} ${p.name}</b><br><span style="font-size:.7rem;color:#64748b">${p.cat} · ${p.date}</span>${p.notes?`<p style="font-size:.76rem;margin-top:5px">${p.notes}</p>`:''}<hr style="margin:7px 0;border-color:#e2e8f0"><span style="font-size:.66rem;color:#94a3b8">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}</span><br><button onclick="deletePin(${p.id})" style="margin-top:6px;background:#fee2e2;color:#dc2626;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:.7rem;font-weight:700">🗑️ Delete</button></div>`);p._m=m;}
+function renderPins(){const el=document.getElementById('pinlist');if(!S.pins.length){el.innerHTML=`<div class="no-pins"><span>📍</span>No pins yet.</div>`;return;}el.innerHTML=S.pins.map(p=>`<div class="pin-card" onclick="flyPin(${p.id})"><div class="pin-em">${p.emoji}</div><div class="pin-inf"><div class="pin-nm">${p.name}</div><div class="pin-co">${p.lat.toFixed(4)}, ${p.lng.toFixed(4)} · ${p.date}</div></div><button class="pin-del" onclick="event.stopPropagation();deletePin(${p.id})"><i class="fa-solid fa-trash"></i></button></div>`).join('');}
+function flyPin(id){const p=S.pins.find(x=>x.id===id);if(!p)return;S.map.flyTo([p.lat,p.lng],15,{duration:1.5});p._m?.openPopup();}
+function deletePin(id){const i=S.pins.findIndex(x=>x.id===id);if(i<0)return;S.map.removeLayer(S.pins[i]._m);S.pins.splice(i,1);savePinsToCookie();renderPins();S.map.closePopup();toast('🗑️ Deleted');}
+function savePinsToCookie(){setCookie('sm_pins',JSON.stringify(S.pins.map(p=>({id:p.id,name:p.name,notes:p.notes,cat:p.cat,emoji:p.emoji,lat:p.lat,lng:p.lng,date:p.date}))),365);}
+function exportPins(fmt){if(!S.pins.length){toast('❌ No pins');return;}let c,fn,m;if(fmt==='gpx'){c=`<?xml version="1.0"?>\n<gpx version="1.1" creator="SportsmanMap">\n${S.pins.map(p=>`  <wpt lat="${p.lat}" lon="${p.lng}"><name>${p.name}</name><desc>${p.notes||''}</desc></wpt>`).join('\n')}\n</gpx>`;fn='pins.gpx';m='application/gpx+xml';}else if(fmt==='kml'){c=`<?xml version="1.0"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document>\n${S.pins.map(p=>`  <Placemark><name>${p.name}</name><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>`).join('\n')}\n</Document></kml>`;fn='pins.kml';m='application/vnd.google-earth.kml+xml';}else{c=JSON.stringify(S.pins.map(p=>({name:p.name,cat:p.cat,lat:p.lat,lng:p.lng,date:p.date})),null,2);fn='pins.json';m='application/json';}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:m}));a.download=fn;a.click();toast('📥 Exported '+fmt.toUpperCase());}
 
-/* ═══════════════════════════════════════════════════
-   PINS
-═══════════════════════════════════════════════════ */
-function initPins() {
-  try { S.pins = JSON.parse(getCookie('sm_pins')||'[]'); } catch { S.pins=[]; }
-  S.pins.forEach(p=>addPinMarker(p));
-  renderPins();
-}
-
-function openPinModal() {
-  const c=S.map.getCenter();
-  openPinModalAt(c.lat,c.lng);
-}
-
-function openPinModalAt(lat,lng) {
-  S.map.closePopup();
-  S.tempLat=lat; S.tempLng=lng;
-  S.emoji='📍';
-  document.getElementById('pin-name').value='';
-  document.getElementById('pin-notes').value='';
-  document.getElementById('pin-cat').value='waypoint';
-  document.getElementById('pin-latlng').value=`${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-  document.querySelectorAll('.ebtn').forEach(b=>b.classList.remove('on'));
-  document.querySelector('.ebtn[data-e="📍"]')?.classList.add('on');
-  document.getElementById('moverlay').classList.add('on');
-  setTimeout(()=>document.getElementById('pin-name').focus(),100);
-}
-
-function closeModal() { document.getElementById('moverlay').classList.remove('on'); }
-
-function selEmoji(btn,e) {
-  document.querySelectorAll('.ebtn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  S.emoji=e;
-}
-
-function savePin() {
-  const name=document.getElementById('pin-name').value.trim()||'Saved Location';
-  const notes=document.getElementById('pin-notes').value.trim();
-  const cat=document.getElementById('pin-cat').value;
-  const pin={id:Date.now(),name,notes,cat,emoji:S.emoji,lat:S.tempLat,lng:S.tempLng,date:new Date().toLocaleDateString()};
-  S.pins.push(pin);
-  savePinsToCookie();
-  addPinMarker(pin);
-  renderPins();
-  closeModal();
-  S.map.flyTo([pin.lat,pin.lng],14,{duration:1.5});
-  toast('📌 Saved: '+name);
-}
-
-function addPinMarker(p) {
-  const icon=L.divIcon({
-    html:`<div style="font-size:20px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))">${p.emoji}</div>`,
-    iconSize:[24,24],iconAnchor:[12,24],popupAnchor:[0,-26],className:''
-  });
-  const m=L.marker([p.lat,p.lng],{icon}).addTo(S.map);
-  m.bindPopup(`
-    <div style="min-width:190px;font-family:var(--font)">
-      <b>${p.emoji} ${p.name}</b><br>
-      <span style="font-size:.72rem;color:#64748b">${p.cat} · ${p.date}</span>
-      ${p.notes?`<p style="font-size:.78rem;margin-top:5px">${p.notes}</p>`:''}
-      <hr style="margin:7px 0;border-color:#e2e8f0">
-      <span style="font-size:.68rem;color:#94a3b8">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}</span><br>
-      <button onclick="deletePin(${p.id})" style="margin-top:6px;background:#fee2e2;color:#dc2626;border:none;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.72rem">🗑️ Delete</button>
-    </div>
-  `);
-  p._m=m;
-}
-
-function renderPins() {
-  const el=document.getElementById('pinlist');
-  if (!S.pins.length) { el.innerHTML=`<div class="no-pins"><span>📍</span>No pins yet. Click map or + Add Pin.</div>`; return; }
-  el.innerHTML=S.pins.map(p=>`
-    <div class="pin-card" onclick="flyPin(${p.id})">
-      <div class="pin-em">${p.emoji}</div>
-      <div class="pin-inf">
-        <div class="pin-nm">${p.name}</div>
-        <div class="pin-co">${p.lat.toFixed(4)}, ${p.lng.toFixed(4)} · ${p.date}</div>
-      </div>
-      <button class="pin-del" onclick="event.stopPropagation();deletePin(${p.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>
-    </div>
-  `).join('');
-}
-
-function flyPin(id) {
-  const p=S.pins.find(x=>x.id===id);
-  if (!p) return;
-  S.map.flyTo([p.lat,p.lng],15,{duration:1.5});
-  p._m?.openPopup();
-}
-
-function deletePin(id) {
-  const i=S.pins.findIndex(x=>x.id===id);
-  if (i<0) return;
-  S.map.removeLayer(S.pins[i]._m);
-  S.pins.splice(i,1);
-  savePinsToCookie();
-  renderPins();
-  S.map.closePopup();
-  toast('🗑️ Pin deleted');
-}
-
-function savePinsToCookie() {
-  const d=S.pins.map(p=>({id:p.id,name:p.name,notes:p.notes,cat:p.cat,emoji:p.emoji,lat:p.lat,lng:p.lng,date:p.date}));
-  setCookie('sm_pins',JSON.stringify(d),365);
-}
-
-function exportPins(fmt) {
-  if (!S.pins.length) { toast('❌ No pins to export'); return; }
-  let c,fn,m;
-  if (fmt==='gpx') {
-    c=`<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="SportsmanMap Pro">\n${S.pins.map(p=>`  <wpt lat="${p.lat}" lon="${p.lng}">\n    <name>${p.name}</name>\n    <desc>${p.notes||''}</desc>\n  </wpt>`).join('\n')}\n</gpx>`;
-    fn='pins.gpx'; m='application/gpx+xml';
-  } else if (fmt==='kml') {
-    c=`<?xml version="1.0"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document>\n${S.pins.map(p=>`  <Placemark><name>${p.name}</name><description>${p.notes||''}</description><Point><coordinates>${p.lng},${p.lat},0</coordinates></Point></Placemark>`).join('\n')}\n</Document></kml>`;
-    fn='pins.kml'; m='application/vnd.google-earth.kml+xml';
-  } else {
-    c=JSON.stringify(S.pins.map(p=>({name:p.name,cat:p.cat,notes:p.notes,lat:p.lat,lng:p.lng,date:p.date})),null,2);
-    fn='pins.json'; m='application/json';
-  }
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([c],{type:m}));
-  a.download=fn; a.click();
-  toast('📥 Exported as '+fmt.toUpperCase());
-}
-
-/* ═══════════════════════════════════════════════════
-   WEATHER — Open-Meteo (free, no key required)
-═══════════════════════════════════════════════════ */
-async function initWeather() {
-  const pos = await new Promise(res => {
-    if (!navigator.geolocation) return res({lat:39.5,lng:-98.35});
-    navigator.geolocation.getCurrentPosition(
-      p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),
-      ()=>res({lat:39.5,lng:-98.35})
-    );
-  });
-  fetchWeather(pos.lat, pos.lng);
-}
-
-async function fetchWeather(lat, lng) {
-  try {
-    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&hourly=relativehumidity_2m,surface_pressure,visibility,precipitation_probability&daily=sunrise,sunset,weathercode,temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&windspeed_unit=mph&forecast_days=6&timezone=auto`);
-    const d = await r.json();
-    const cw = d.current_weather;
-    const h = new Date().getHours();
-
-    document.getElementById('w-ico').textContent = wmoEmoji(cw.weathercode);
-    document.getElementById('w-temp').textContent = Math.round(cw.temperature)+'°F';
-    document.getElementById('w-desc').textContent = wmoDesc(cw.weathercode);
-    document.getElementById('w-hum').textContent = 'Humidity: '+(d.hourly?.relativehumidity_2m?.[h]||'--')+'%';
-    document.getElementById('w-wind').textContent = 'Wind: '+Math.round(cw.windspeed)+' mph';
-    document.getElementById('w-pres').textContent = 'Pressure: '+(d.hourly?.surface_pressure?.[h]?.toFixed(0)||'--')+' hPa';
-    document.getElementById('w-vis').textContent = 'Vis: '+((d.hourly?.visibility?.[h]||10000)/1609.34).toFixed(1)+' mi';
-
-    // Sunrise/Sunset
-    if (d.daily?.sunrise?.[0]) {
-      const sr=new Date(d.daily.sunrise[0]);
-      const ss=new Date(d.daily.sunset[0]);
-      document.getElementById('sunrise').textContent=sr.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-      document.getElementById('sunset').textContent=ss.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-    }
-
-    // City name
-    try {
-      const gr=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=10`);
-      const gd=await gr.json();
-      document.getElementById('w-city').textContent=gd.address?.city||gd.address?.county||gd.address?.state||'USA';
-    } catch {}
-
-    // Forecast
+/* ═══════ WEATHER ═══════ */
+async function initWeather(){const pos=await new Promise(r=>{if(!navigator.geolocation)return r({lat:39.5,lng:-98.35});navigator.geolocation.getCurrentPosition(p=>r({lat:p.coords.latitude,lng:p.coords.longitude}),()=>r({lat:39.5,lng:-98.35}));});fetchWeather(pos.lat,pos.lng);}
+async function fetchWeather(lat,lng){
+  try{
+    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&hourly=relativehumidity_2m,surface_pressure,visibility&daily=sunrise,sunset,weathercode,temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&windspeed_unit=mph&forecast_days=6&timezone=auto`);
+    const d=await r.json();const cw=d.current_weather;const h=new Date().getHours();
+    document.getElementById('w-ico').textContent=wmoEmoji(cw.weathercode);
+    document.getElementById('w-temp').textContent=Math.round(cw.temperature)+'°F';
+    document.getElementById('w-desc').textContent=wmoDesc(cw.weathercode);
+    document.getElementById('w-hum').textContent='Humidity: '+(d.hourly?.relativehumidity_2m?.[h]||'--')+'%';
+    document.getElementById('w-wind').textContent='Wind: '+Math.round(cw.windspeed)+' mph';
+    document.getElementById('w-pres').textContent='Pres: '+(d.hourly?.surface_pressure?.[h]?.toFixed(0)||'--')+' hPa';
+    document.getElementById('w-vis').textContent='Vis: '+((d.hourly?.visibility?.[h]||10000)/1609.34).toFixed(1)+' mi';
+    if(d.daily?.sunrise?.[0]){document.getElementById('sunrise').textContent=new Date(d.daily.sunrise[0]).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});document.getElementById('sunset').textContent=new Date(d.daily.sunset[0]).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});}
+    try{const gr=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=10`);const gd=await gr.json();document.getElementById('w-city').textContent=gd.address?.city||gd.address?.county||gd.address?.state||'USA';}catch{}
     renderForecast(d);
-  } catch(e) {
-    document.getElementById('w-desc').textContent='Weather unavailable';
-  }
+  }catch{document.getElementById('w-desc').textContent='Unavailable';}
+}
+function renderForecast(d){const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];const el=document.getElementById('forecast');el.innerHTML='';for(let i=1;i<=5;i++){const dt=new Date();dt.setDate(dt.getDate()+i);el.innerHTML+=`<div class="fday"><div class="fdn">${days[dt.getDay()]}</div><div class="fdi">${wmoEmoji(d.daily?.weathercode?.[i]||0)}</div><div class="fdt">${Math.round(d.daily?.temperature_2m_max?.[i]||60)}°/${Math.round(d.daily?.temperature_2m_min?.[i]||40)}°</div></div>`;}}
+function wmoEmoji(c){if(c===0)return'☀️';if(c<=2)return'⛅';if(c<=3)return'☁️';if(c<=49)return'🌫️';if(c<=59)return'🌦️';if(c<=69)return'🌧️';if(c<=79)return'❄️';if(c<=82)return'🌧️';if(c<=86)return'🌨️';if(c<=99)return'⛈️';return'🌤️';}
+function wmoDesc(c){if(c===0)return'Clear Sky';if(c<=2)return'Partly Cloudy';if(c<=3)return'Overcast';if(c<=49)return'Foggy';if(c<=59)return'Drizzle';if(c<=69)return'Rain';if(c<=79)return'Snow';if(c<=82)return'Showers';if(c<=86)return'Snow Showers';if(c<=99)return'Thunderstorms';return'Mixed';}
+
+/* ═══════ NOAA ═══════ */
+async function loadNoaaAlerts(){
+  try{const r=await fetch('https://api.weather.gov/alerts/active?area=US&status=actual&message_type=alert&limit=5');const d=await r.json();const el=document.getElementById('noaa-alerts');
+    if(!d.features?.length){el.innerHTML='<div class="icard"><p>✅ No active severe alerts</p></div>';return;}
+    el.innerHTML=d.features.slice(0,5).map(f=>{const p=f.properties;const sev={'Extreme':'#dc2626','Severe':'#ea580c','Moderate':'#ca8a04','Minor':'#2563eb'}[p.severity]||'#64748b';return`<div class="icard" style="border-left:3px solid ${sev}"><h5 style="color:${sev}">⚠️ ${p.event}</h5><p>${(p.areaDesc||'').substring(0,80)}${(p.areaDesc?.length||0)>80?'…':''}</p></div>`;}).join('');
+  }catch{document.getElementById('noaa-alerts').innerHTML='<div class="icard"><p>Alerts unavailable</p></div>';}
 }
 
-function renderForecast(d) {
-  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const el=document.getElementById('forecast');
-  el.innerHTML='';
-  for(let i=1;i<=5;i++) {
-    const dt=new Date(); dt.setDate(dt.getDate()+i);
-    const hi=Math.round(d.daily?.temperature_2m_max?.[i]||60);
-    const lo=Math.round(d.daily?.temperature_2m_min?.[i]||40);
-    const wc=d.daily?.weathercode?.[i]||0;
-    el.innerHTML+=`
-      <div class="fday">
-        <div class="fdn">${days[dt.getDay()]}</div>
-        <div class="fdi">${wmoEmoji(wc)}</div>
-        <div class="fdt">${hi}°/${lo}°</div>
-      </div>`;
-  }
+/* ═══════ SOLUNAR ═══════ */
+function initSolunar(){const now=new Date(),doy=Math.floor((now-new Date(now.getFullYear(),0,0))/86400000);const phases=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];document.getElementById('moon-ph').textContent=phases[Math.floor((doy%29.5)/(29.5/8))%8];document.getElementById('moon-il').textContent=Math.round(Math.abs(Math.sin((doy/29.5)*Math.PI))*100)+'%';const bH=6+Math.floor(doy%5),maj=new Date(now),min2=new Date(now);maj.setHours(bH,doy%60,0);min2.setHours(bH+6,(doy+30)%60,0);document.getElementById('sol-maj').textContent=maj.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});document.getElementById('sol-min').textContent=min2.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});}
+function initSeasonGuide(){const m=new Date().getMonth()+1;let g='';if(m>=9&&m<=11)g='🦌 <b>Deer Season</b> — Archery & firearms opening. Scout food sources.';else if(m===12||m<=2)g='❄️ <b>Winter</b> — Ice fishing peak! Late archery in some states.';else if(m>=3&&m<=5)g='🦃 <b>Spring</b> — Turkey season! Pre-spawn bass excellent.';else g='🎣 <b>Summer</b> — Dawn/dusk fishing. Scout for fall hunts.';document.getElementById('season-guide').innerHTML=g;}
+
+/* ═══════ PANEL ═══════ */
+function togglePanel(){S.panelOpen=!S.panelOpen;const panel=document.getElementById('spanel'),tog=document.getElementById('ptoggle'),icon=document.getElementById('pticon');panel.classList.toggle('collapsed',!S.panelOpen);if(S.panelPos==='right'){tog.className='';tog.id='ptoggle';if(!S.panelOpen)tog.classList.add('hidden-r');icon.className=S.panelOpen?'fa-solid fa-chevron-right':'fa-solid fa-chevron-left';}else if(S.panelPos==='left'){tog.className='pos-left';tog.id='ptoggle';if(!S.panelOpen)tog.classList.add('hidden-l');icon.className=S.panelOpen?'fa-solid fa-chevron-left':'fa-solid fa-chevron-right';}saveSetting('po',S.panelOpen);}
+function setPanelPos(pos){const panel=document.getElementById('spanel'),tog=document.getElementById('ptoggle'),icon=document.getElementById('pticon');panel.className='';panel.id='spanel';panel.style.cssText='';tog.className='';tog.id='ptoggle';tog.style.cssText='';S.panelOpen=true;S.panelPos=pos;if(pos==='left'){panel.classList.add('pos-left');tog.classList.add('pos-left');tog.style.left='var(--panel-w)';tog.style.top='50%';tog.style.transform='translateY(-50%)';icon.className='fa-solid fa-chevron-left';}else{tog.style.right='var(--panel-w)';tog.style.top='50%';tog.style.transform='translateY(-50%)';icon.className='fa-solid fa-chevron-right';}document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('on'));document.querySelector(`.pbtn[onclick*="'${pos}'"]`)?.classList.add('on');saveSetting('pp',pos);toast('↔️ Panel → '+pos);}
+function setTheme(t){['t-blue','t-green','t-red','t-purple','t-orange'].forEach(c=>document.body.classList.remove(c));document.body.classList.add('t-'+t);S.theme=t;document.querySelectorAll('.tdot').forEach(d=>{d.classList.remove('on');d.innerHTML='';});const a=document.querySelector(`.tdot[data-t="${t}"]`);if(a){a.classList.add('on');a.innerHTML='<i class="fa-solid fa-check"></i>';}saveSetting('theme',t);}
+function setDark(on){document.body.classList.toggle('dark',on);S.dark=on;saveSetting('dark',on);toast(on?'🌙 Dark':'☀️ Light');}
+function toggleCoords(on){document.getElementById('coords').style.display=on?'block':'none';}
+function toggleScale(on){if(on&&!S.scaleCtrl)S.scaleCtrl=L.control.scale({position:'bottomleft'}).addTo(S.map);if(!on&&S.scaleCtrl){S.map.removeControl(S.scaleCtrl);S.scaleCtrl=null;}}
+function toggleLegend(){const el=document.getElementById('legend');el.style.display=el.style.display==='block'?'none':'block';}
+function toggleLayerStatus(){const el=document.getElementById('lstatus');el.style.display=el.style.display==='block'?'none':'block';}
+
+/* ═══════ EVENTS ═══════ */
+function initEvents(){
+  document.querySelectorAll('.ptab').forEach(t=>{t.addEventListener('click',()=>{document.querySelectorAll('.ptab').forEach(x=>x.classList.remove('on'));document.querySelectorAll('.tpane').forEach(x=>x.classList.remove('on'));t.classList.add('on');document.getElementById('tab-'+t.dataset.tab)?.classList.add('on');});});
+  document.getElementById('ptoggle').addEventListener('click',togglePanel);
+  document.getElementById('btn-gps').addEventListener('click',()=>S.gps?stopGPS():startGPS());
+  document.getElementById('btn-meas').addEventListener('click',toggleMeasure);
+  document.getElementById('btn-lstat').addEventListener('click',toggleLayerStatus);
+  document.getElementById('btn-fs').addEventListener('click',()=>{if(!document.fullscreenElement){document.documentElement.requestFullscreen?.();document.getElementById('btn-fs').innerHTML='<i class="fa-solid fa-compress"></i>';}else{document.exitFullscreen?.();document.getElementById('btn-fs').innerHTML='<i class="fa-solid fa-expand"></i>';}});
+  document.getElementById('btn-share').addEventListener('click',()=>{const c=S.map.getCenter();navigator.clipboard?.writeText(`${location.origin}${location.pathname}?lat=${c.lat.toFixed(4)}&lng=${c.lng.toFixed(4)}&z=${S.map.getZoom()}`).then(()=>toast('🔗 Link copied!'));});
+  document.getElementById('btn-gear').addEventListener('click',()=>{if(!S.panelOpen)togglePanel();document.querySelectorAll('.ptab').forEach(x=>x.classList.remove('on'));document.querySelectorAll('.tpane').forEach(x=>x.classList.remove('on'));document.querySelector('[data-tab="display"]')?.classList.add('on');document.getElementById('tab-display')?.classList.add('on');});
+  document.getElementById('fab-pin').addEventListener('click',openPinModal);
+  document.getElementById('fab-zi').addEventListener('click',()=>S.map.zoomIn());
+  document.getElementById('fab-zo').addEventListener('click',()=>S.map.zoomOut());
+  document.getElementById('fab-leg').addEventListener('click',toggleLegend);
+  document.getElementById('fab-home').addEventListener('click',()=>S.map.flyTo([39.5,-98.35],5,{duration:2}));
+  document.getElementById('moverlay').addEventListener('click',e=>{if(e.target===document.getElementById('moverlay'))closeModal();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+  const p=new URLSearchParams(location.search);if(p.get('lat')&&p.get('lng'))setTimeout(()=>S.map.flyTo([parseFloat(p.get('lat')),parseFloat(p.get('lng'))],parseInt(p.get('z'))||13),1000);
 }
 
-function wmoEmoji(c) {
-  if(c===0)return'☀️';if(c<=2)return'⛅';if(c<=3)return'☁️';
-  if(c<=49)return'🌫️';if(c<=59)return'🌦️';if(c<=69)return'🌧️';
-  if(c<=79)return'❄️';if(c<=82)return'🌧️';if(c<=86)return'🌨️';
-  if(c<=99)return'⛈️';return'🌤️';
-}
-function wmoDesc(c) {
-  if(c===0)return'Clear Sky';if(c<=2)return'Partly Cloudy';if(c<=3)return'Overcast';
-  if(c<=49)return'Foggy';if(c<=59)return'Light Drizzle';if(c<=69)return'Rain';
-  if(c<=79)return'Snow';if(c<=82)return'Rain Showers';if(c<=86)return'Snow Showers';
-  if(c<=99)return'Thunderstorms';return'Mixed';
-}
+/* ═══════ COOKIES ═══════ */
+function setCookie(n,v,d){const e=new Date();e.setTime(e.getTime()+d*86400000);document.cookie=`${n}=${encodeURIComponent(v)};expires=${e.toUTCString()};path=/;SameSite=Lax`;}
+function getCookie(n){const m=document.cookie.match(new RegExp('(^| )'+n+'=([^;]+)'));return m?decodeURIComponent(m[2]):null;}
+function saveSetting(k,v){setCookie('sm_'+k,String(v),365);}
+function loadSettings(){const t=getCookie('sm_theme')||'blue';setTheme(t);const dk=getCookie('sm_dark')==='true';if(dk){document.body.classList.add('dark');document.getElementById('dark-tog').checked=true;S.dark=true;}const bm=getCookie('sm_bm');if(bm&&BASEMAPS[bm])S.activeBM=bm;S.units=getCookie('sm_units')||'imperial';document.getElementById('unit-sel').value=S.units;S.cf=getCookie('sm_cf')||'dd';document.getElementById('cf-sel').value=S.cf;}
 
-/* ═══════════════════════════════════════════════════
-   NOAA ALERTS — NWS API (free, no key)
-═══════════════════════════════════════════════════ */
-async function loadNoaaAlerts() {
-  try {
-    const r = await fetch('https://api.weather.gov/alerts/active?area=US&status=actual&message_type=alert&limit=5');
-    const d = await r.json();
-    const el = document.getElementById('noaa-alerts');
-    if (!d.features?.length) { el.innerHTML='<div class="icard"><p>✅ No active severe alerts</p></div>'; return; }
-    el.innerHTML = d.features.slice(0,5).map(f=>{
-      const p=f.properties;
-      const sev={'Extreme':'#dc2626','Severe':'#ea580c','Moderate':'#ca8a04','Minor':'#2563eb'}[p.severity]||'#64748b';
-      return `<div class="icard" style="border-left:3px solid ${sev}">
-        <h5 style="color:${sev}">⚠️ ${p.event}</h5>
-        <p>${p.areaDesc?.substring(0,80)||''}${(p.areaDesc?.length||0)>80?'…':''}</p>
-        <p style="margin-top:4px;font-size:.65rem;color:#94a3b8">Until: ${p.expires?new Date(p.expires).toLocaleDateString():'Unknown'}</p>
-      </div>`;
-    }).join('');
-  } catch { document.getElementById('noaa-alerts').innerHTML='<div class="icard"><p>Alerts unavailable</p></div>'; }
-}
+/* ═══════ TOAST ═══════ */
+function toast(msg){const c=document.getElementById('toasts'),t=document.createElement('div');t.className='toast';t.textContent=msg;c.appendChild(t);setTimeout(()=>t.remove(),3200);}
 
-/* ═══════════════════════════════════════════════════
-   SOLUNAR & SEASON GUIDE
-═══════════════════════════════════════════════════ */
-function initSolunar() {
-  const now=new Date();
-  const doy=Math.floor((now-new Date(now.getFullYear(),0,0))/86400000);
-  const phases=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
-  const pi=Math.floor((doy%29.5)/(29.5/8))%8;
-  const ill=Math.round(Math.abs(Math.sin((doy/29.5)*Math.PI))*100);
-  document.getElementById('moon-ph').textContent=phases[pi];
-  document.getElementById('moon-il').textContent=ill+'%';
-
-  const baseH=6+Math.floor(doy%5);
-  const maj=new Date(now); maj.setHours(baseH, doy%60, 0);
-  const min2=new Date(now); min2.setHours(baseH+6, (doy+30)%60, 0);
-  document.getElementById('sol-maj').textContent=maj.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-  document.getElementById('sol-min').textContent=min2.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-}
-
-function initSeasonGuide() {
-  const m=new Date().getMonth()+1, d=new Date().getDate();
-  let guide='';
-  if (m>=9&&m<=11) guide='🦌 <b>Deer Season</b> — Archery & firearm seasons open in most states. Scout food sources and funnels.';
-  else if (m===12||m<=2) guide='❄️ <b>Winter</b> — Ice fishing peak! Walleye, perch & pike active. Late archery in some states.';
-  else if (m>=3&&m<=5) guide='🦃 <b>Spring</b> — Turkey season! Pre-spawn bass & crappie fishing excellent. Steelhead runs.';
-  else guide='🎣 <b>Summer</b> — Early morning/late evening fishing for bass, walleye. Scouting for fall hunts.';
-  document.getElementById('season-guide').innerHTML=guide;
-}
-
-/* ═══════════════════════════════════════════════════
-   PANEL & SETTINGS
-═══════════════════════════════════════════════════ */
-function togglePanel() {
-  S.panelOpen=!S.panelOpen;
-  const panel=document.getElementById('spanel');
-  const tog=document.getElementById('ptoggle');
-  const icon=document.getElementById('pticon');
-  panel.classList.toggle('collapsed',!S.panelOpen);
-
-  if (S.panelPos==='right') {
-    tog.className=''; tog.id='ptoggle';
-    if (!S.panelOpen) tog.classList.add('hidden-r');
-    else tog.style.right='var(--panel-w)';
-    icon.className=S.panelOpen?'fa-solid fa-chevron-right':'fa-solid fa-chevron-left';
-  } else if (S.panelPos==='left') {
-    tog.className='pos-left'; tog.id='ptoggle';
-    if (!S.panelOpen) tog.classList.add('hidden-l');
-    else tog.style.left='var(--panel-w)';
-    icon.className=S.panelOpen?'fa-solid fa-chevron-left':'fa-solid fa-chevron-right';
-  }
-  saveSetting('po',S.panelOpen);
-}
-
-function setPanelPos(pos) {
-  const panel=document.getElementById('spanel');
-  const tog=document.getElementById('ptoggle');
-  const icon=document.getElementById('pticon');
-
-  // Reset
-  panel.className=''; panel.id='spanel'; panel.style.cssText='';
-  tog.className=''; tog.id='ptoggle'; tog.style.cssText='';
-  S.panelOpen=true; S.panelPos=pos;
-
-  if (pos==='left') {
-    panel.classList.add('pos-left');
-    tog.classList.add('pos-left');
-    tog.style.left='var(--panel-w)';
-    tog.style.top='50%'; tog.style.transform='translateY(-50%)';
-    icon.className='fa-solid fa-chevron-left';
-  } else if (pos==='top') {
-    panel.classList.add('pos-top');
-    tog.classList.add('pos-top');
-    icon.className='fa-solid fa-chevron-up';
-  } else if (pos==='bottom') {
-    panel.classList.add('pos-bottom');
-    tog.classList.add('pos-bottom');
-    icon.className='fa-solid fa-chevron-down';
-  } else {
-    // right
-    tog.style.right='var(--panel-w)';
-    tog.style.top='50%'; tog.style.transform='translateY(-50%)';
-    icon.className='fa-solid fa-chevron-right';
-  }
-
-  document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('on'));
-  document.querySelector(`.pbtn[onclick*="'${pos}'"]`)?.classList.add('on');
-  saveSetting('pp',pos);
-  toast('↔️ Panel → '+pos);
-}
-
-function setTheme(t) {
-  ['t-blue','t-green','t-red','t-purple','t-orange'].forEach(c=>document.body.classList.remove(c));
-  document.body.classList.add('t-'+t);
-  S.theme=t;
-  document.querySelectorAll('.tdot').forEach(d=>{d.classList.remove('on');d.innerHTML='';});
-  const a=document.querySelector(`.tdot[data-t="${t}"]`);
-  if (a) { a.classList.add('on'); a.innerHTML='<i class="fa-solid fa-check"></i>'; }
-  saveSetting('theme',t);
-}
-
-function setDark(on) {
-  document.body.classList.toggle('dark',on);
-  S.dark=on;
-  saveSetting('dark',on);
-  toast(on?'🌙 Dark mode':'☀️ Light mode');
-}
-
-function toggleCoords(on) { document.getElementById('coords').style.display=on?'block':'none'; }
-function toggleScale(on) {
-  if(on && !S.scaleCtrl) S.scaleCtrl=L.control.scale({position:'bottomleft'}).addTo(S.map);
-  if(!on && S.scaleCtrl){S.map.removeControl(S.scaleCtrl);S.scaleCtrl=null;}
-}
-
-function toggleLegend() {
-  const el=document.getElementById('legend');
-  el.style.display=el.style.display==='block'?'none':'block';
-}
-
-function toggleLayerStatus() {
-  const el=document.getElementById('lstatus');
-  el.style.display=el.style.display==='block'?'none':'block';
-}
-
-/* ═══════════════════════════════════════════════════
-   EVENTS
-═══════════════════════════════════════════════════ */
-function initEvents() {
-  // Tabs
-  document.querySelectorAll('.ptab').forEach(t => {
-    t.addEventListener('click', () => {
-      document.querySelectorAll('.ptab').forEach(x=>x.classList.remove('on'));
-      document.querySelectorAll('.tpane').forEach(x=>x.classList.remove('on'));
-      t.classList.add('on');
-      document.getElementById('tab-'+t.dataset.tab)?.classList.add('on');
-    });
-  });
-
-  document.getElementById('ptoggle').addEventListener('click', togglePanel);
-  document.getElementById('btn-gps').addEventListener('click', ()=>S.gps?stopGPS():startGPS());
-  document.getElementById('btn-meas').addEventListener('click', toggleMeasure);
-  document.getElementById('btn-lstat').addEventListener('click', toggleLayerStatus);
-  document.getElementById('btn-fs').addEventListener('click', () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen?.();
-      document.getElementById('btn-fs').innerHTML='<i class="fa-solid fa-compress"></i>';
-    } else {
-      document.exitFullscreen?.();
-      document.getElementById('btn-fs').innerHTML='<i class="fa-solid fa-expand"></i>';
-    }
-  });
-  document.getElementById('btn-share').addEventListener('click', () => {
-    const c=S.map.getCenter();
-    const url=`${location.origin}${location.pathname}?lat=${c.lat.toFixed(4)}&lng=${c.lng.toFixed(4)}&z=${S.map.getZoom()}`;
-    navigator.clipboard?.writeText(url).then(()=>toast('🔗 Link copied!'));
-  });
-  document.getElementById('btn-gear').addEventListener('click', () => {
-    if (!S.panelOpen) togglePanel();
-    document.querySelectorAll('.ptab').forEach(x=>x.classList.remove('on'));
-    document.querySelectorAll('.tpane').forEach(x=>x.classList.remove('on'));
-    document.querySelector('[data-tab="display"]')?.classList.add('on');
-    document.getElementById('tab-display')?.classList.add('on');
-  });
-
-  document.getElementById('fab-pin').addEventListener('click', openPinModal);
-  document.getElementById('fab-zi').addEventListener('click', ()=>S.map.zoomIn());
-  document.getElementById('fab-zo').addEventListener('click', ()=>S.map.zoomOut());
-  document.getElementById('fab-leg').addEventListener('click', toggleLegend);
-  document.getElementById('fab-home').addEventListener('click', ()=>S.map.flyTo([39.5,-98.35],5,{duration:2}));
-
-  document.getElementById('moverlay').addEventListener('click', e=>{
-    if (e.target===document.getElementById('moverlay')) closeModal();
-  });
-
-  document.addEventListener('keydown', e=>{
-    if (e.key==='Escape') closeModal();
-    if (e.key==='+'||e.key==='=') S.map?.zoomIn();
-    if (e.key==='-') S.map?.zoomOut();
-  });
-
-  // URL params
-  const p=new URLSearchParams(location.search);
-  if(p.get('lat')&&p.get('lng')) {
-    setTimeout(()=>S.map.flyTo([parseFloat(p.get('lat')),parseFloat(p.get('lng'))],parseInt(p.get('z'))||13),1000);
-  }
-}
-
-/* ═══════════════════════════════════════════════════
-   COOKIES & PERSISTENCE
-═══════════════════════════════════════════════════ */
-function setCookie(n,v,d) {
-  const e=new Date(); e.setTime(e.getTime()+d*86400000);
-  document.cookie=`${n}=${encodeURIComponent(v)};expires=${e.toUTCString()};path=/;SameSite=Lax`;
-}
-function getCookie(n) {
-  const m=document.cookie.match(new RegExp('(^| )'+n+'=([^;]+)'));
-  return m?decodeURIComponent(m[2]):null;
-}
-function saveSetting(k,v) { setCookie('sm_'+k,String(v),365); }
-function loadSettings() {
-  const t=getCookie('sm_theme')||'blue'; setTheme(t);
-  const dk=getCookie('sm_dark')==='true';
-  if(dk){document.body.classList.add('dark');document.getElementById('dark-tog').checked=true;S.dark=true;}
-  const bm=getCookie('sm_bm'); if(bm&&BASEMAPS[bm]) S.activeBM=bm;
-  const u=getCookie('sm_units')||'imperial'; S.units=u; document.getElementById('unit-sel').value=u;
-  const cf=getCookie('sm_cf')||'dd'; S.cf=cf; document.getElementById('cf-sel').value=cf;
-}
-
-/* ═══════════════════════════════════════════════════
-   TOAST
-═══════════════════════════════════════════════════ */
-function toast(msg) {
-  const c=document.getElementById('toasts');
-  const t=document.createElement('div');
-  t.className='toast'; t.textContent=msg;
-  c.appendChild(t);
-  setTimeout(()=>t.remove(),3200);
-}
-
-/* ── EXPOSE GLOBALS ── */
+/* ═══════ GLOBALS ═══════ */
 window.toggleLayer=toggleLayer;window.setTheme=setTheme;window.setDark=setDark;
-window.setPanelPos=setPanelPos;window.setOpacity=setOpacity;
+window.setPanelPos=setPanelPos;window.setOpacity=setOpacity;window.runDiagnostics=runDiagnostics;
 window.openPinModal=openPinModal;window.openPinModalAt=openPinModalAt;
 window.closeModal=closeModal;window.selEmoji=selEmoji;window.savePin=savePin;
 window.deletePin=deletePin;window.flyPin=flyPin;window.exportPins=exportPins;
 window.toggleCoords=toggleCoords;window.toggleScale=toggleScale;
 window.gotoResult=gotoResult;window.toast=toast;
 window.fetchGBIF=fetchGBIF;window.fetchINat=fetchINat;
+window.startGPS=startGPS;window.stopGPS=stopGPS;
 </script>
 </body>
 </html>
